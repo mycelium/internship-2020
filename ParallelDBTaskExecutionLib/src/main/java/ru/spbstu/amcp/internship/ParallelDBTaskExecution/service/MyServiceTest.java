@@ -22,5 +22,4 @@ public class MyServiceTest {
     static class TestConfiguration {
     }
 
-
 }
