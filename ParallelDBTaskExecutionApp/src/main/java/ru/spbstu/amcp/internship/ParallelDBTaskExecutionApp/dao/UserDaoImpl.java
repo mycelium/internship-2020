@@ -2,7 +2,6 @@ package ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp.dao;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-import ru.spbstu.amcp.internship.ParallelDBTaskExecution.support.PJdbcTemplate;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp.model.User;
 
 import java.util.List;
@@ -10,9 +9,9 @@ import java.util.List;
 @Repository
 public class UserDaoImpl implements UserDao {
 
-    private PJdbcTemplate jdbcTemplate;
+    private JdbcTemplate jdbcTemplate;
 
-    public UserDaoImpl(PJdbcTemplate jdbcTemplate)
+    public UserDaoImpl(JdbcTemplate jdbcTemplate)
     {
         this.jdbcTemplate = jdbcTemplate;
         jdbcTemplate.update("DROP TABLE IF EXISTS USERS");

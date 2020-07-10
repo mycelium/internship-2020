@@ -8,12 +8,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.transaction.PlatformTransactionManager;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecution.support.PDataSourceTransactionManager;
-import ru.spbstu.amcp.internship.ParallelDBTaskExecution.support.PJdbcTemplate;
 
 import javax.sql.DataSource;
 
@@ -35,25 +32,13 @@ public class DBConfig {
     @ConditionalOnMissingBean({PlatformTransactionManager.class})
     PDataSourceTransactionManager transactionManager(DataSource dataSource, ObjectProvider<TransactionManagerCustomizers> transactionManagerCustomizers) {
         PDataSourceTransactionManager transactionManager = new PDataSourceTransactionManager(dataSource);
-        System.out.println("AAAAA" + dataSource);
+        System.out.println(dataSource);
         transactionManagerCustomizers.ifAvailable((customizers) -> {
             customizers.customize(transactionManager);
         });
         return transactionManager;
     }
 
-    @Bean
-    @Primary
-    PJdbcTemplate jdbcTemplate(DataSource dataSource, JdbcProperties properties) {
-        PJdbcTemplate jdbcTemplate = new PJdbcTemplate(dataSource);
-        JdbcProperties.Template template = properties.getTemplate();
-        jdbcTemplate.setFetchSize(template.getFetchSize());
-        jdbcTemplate.setMaxRows(template.getMaxRows());
-        if (template.getQueryTimeout() != null) {
-            jdbcTemplate.setQueryTimeout((int)template.getQueryTimeout().getSeconds());
-        }
 
-        return jdbcTemplate;
-    }
 
 }

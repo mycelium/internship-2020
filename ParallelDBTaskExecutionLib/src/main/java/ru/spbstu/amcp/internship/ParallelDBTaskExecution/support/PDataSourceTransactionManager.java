@@ -343,6 +343,7 @@ public class PDataSourceTransactionManager extends AbstractPlatformTransactionMa
         }
         try {
             con.commit();
+            System.out.println("COMMITED BY " + Thread.currentThread());
         }
         catch (SQLException ex) {
             throw translateException("JDBC commit", ex);

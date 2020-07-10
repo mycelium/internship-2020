@@ -21,7 +21,7 @@ public class ParallelDbTaskExecutionAppApplication {
 		try {
 			userService.userTestNonParallelDeclarativeTransaction();
 		}catch (Exception rollback){}
-		userService.userTestNonParallelImperativeTransaction();
+		userService.userTestParallelImperativeTransaction();
 
 //		for(int i = 0; i < 100000; i++){
 //			userService.createUser(i+15, "Test");
