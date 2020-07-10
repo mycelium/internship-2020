@@ -1,35 +1,33 @@
 package ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp.dao;
 
-import org.springframework.jdbc.core.JdbcOperations;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
-import org.springframework.stereotype.Component;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import ru.spbstu.amcp.internship.ParallelDBTaskExecution.support.PJdbcTemplate;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp.model.User;
 
-import java.time.Period;
 import java.util.List;
 
 @Repository
 public class UserDaoImpl implements UserDao {
 
-    private JdbcOperations jdbcOperations;
+    private PJdbcTemplate jdbcTemplate;
 
-    public UserDaoImpl(JdbcOperations jdbcOperations)
+    public UserDaoImpl(PJdbcTemplate jdbcTemplate)
     {
-        this.jdbcOperations = jdbcOperations;
-        jdbcOperations.update("DROP TABLE IF EXISTS USERS");
-        jdbcOperations.update("CREATE TABLE USERS(ID INT PRIMARY KEY, NAME VARCHAR(255))");
+        this.jdbcTemplate = jdbcTemplate;
+        jdbcTemplate.update("DROP TABLE IF EXISTS USERS");
+        jdbcTemplate.update("CREATE TABLE USERS(ID INT PRIMARY KEY, NAME VARCHAR(255))");
 
     }
 
     @Override
     public void insert(User user) {
-        jdbcOperations.update("INSERT INTO USERS (id, name) values (?, ?)", user.getId(), user.getName());
+        jdbcTemplate.update("INSERT INTO USERS (id, name) values (?, ?)", user.getId(), user.getName());
     }
 
 
     public void deleteById(int id) {
-        jdbcOperations.update("DELETE FROM USERS WHERE ID = ?", id);
+        jdbcTemplate.update("DELETE FROM USERS WHERE ID = ?", id);
     }
 
     public int count() {
@@ -37,7 +35,7 @@ public class UserDaoImpl implements UserDao {
     }
 
     public User getById(int id) {
-        return jdbcOperations.queryForObject("SELECT * FROM USERS WHERE ID = ?", new Object[]{id},
+        return jdbcTemplate.queryForObject("SELECT * FROM USERS WHERE ID = ?", new Object[]{id},
                 (rs,i) -> new User(rs.getInt("id"), rs.getString("name")));
     }
 
@@ -48,7 +46,7 @@ public class UserDaoImpl implements UserDao {
 
 
     public void changeUserName(int id, String newName) {
-        jdbcOperations.update("UPDATE USERS SET name=? where id = ?", newName, id);
+        jdbcTemplate.update("UPDATE USERS SET name=? where id = ?", newName, id);
     }
 
 }
