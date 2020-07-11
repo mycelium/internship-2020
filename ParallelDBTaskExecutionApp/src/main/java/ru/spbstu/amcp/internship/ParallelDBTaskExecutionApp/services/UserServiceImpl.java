@@ -1,15 +1,21 @@
 package ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp.services;
 
+import org.springframework.jdbc.support.xml.SqlXmlFeatureNotImplementedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import ru.spbstu.amcp.internship.ParallelDBTaskExecution.support.PDataSourceTransactionManager;
+import ru.spbstu.amcp.internship.ParallelDBTaskExecution.concurtx.ConcurTxManager;
+import ru.spbstu.amcp.internship.ParallelDBTaskExecution.concurtx.ITxAction;
+import ru.spbstu.amcp.internship.ParallelDBTaskExecution.concurtx.TxAction;
+import ru.spbstu.amcp.internship.ParallelDBTaskExecution.extra.PDataSourceTransactionManager;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp.dao.UserDao;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp.model.User;
 
+import java.sql.SQLDataException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -20,9 +26,11 @@ public class UserServiceImpl implements UserService {
     private UserDao dao;
     private TransactionTemplate transactionTemplate;
     private TransactionTemplate transactionTemplate2;
+    private PlatformTransactionManager mytransactionManager;
 
     public UserServiceImpl(UserDao dao, PDataSourceTransactionManager transactionManager){
         this.dao = dao;
+        mytransactionManager = transactionManager;
         transactionTemplate = new TransactionTemplate(transactionManager);
         transactionTemplate2 = new TransactionTemplate(transactionManager);
     }
@@ -68,6 +76,36 @@ public class UserServiceImpl implements UserService {
 
     }
 
+    public void exceptionTransaction(){
+        transactionTemplate.execute(status->{
+
+            dao.insert(new User(17, "After Exception"));
+            dao.insert(new User(16, "Before Exception"));
+
+            return null;
+        });
+    }
+
+    public void myTx(){
+
+        ConcurTxManager ctxm = new ConcurTxManager(transactionTemplate);
+        ctxm.executeConcurTx(()->{
+            dao.insert(new User(4, "Begin of ConcurTxTransaction"));
+
+            new TxAction(ctxm);
+
+            return null;
+        });
+        Future v;
+
+        new ConcurTxManager(mytransactionManager).executeConcurTx(()->{
+            dao.insert(new User(5, "Other ConcurTxTransaction2"));
+            return null;
+        });
+
+
+    }
+
     private volatile Integer numberOfActiveChildThreads = 0;
 
     public void userTestParallelImperativeTransaction() throws Exception {
@@ -76,7 +114,6 @@ public class UserServiceImpl implements UserService {
 
         //Начало транзакции
         transactionTemplate.execute(status -> {
-
             //SavePoints
             Object save = new Object();
             AtomicReference<Object> externalSavePoint = new AtomicReference<>(new Object());
@@ -145,6 +182,7 @@ public class UserServiceImpl implements UserService {
                         status.releaseSavepoint(saveInOtherThread);
 
                         dao.insert(new User(16, "Before External"));
+//                        dao.insert(new User(16, "Before External2"));
 
                         externalSavePoint.set(status.createSavepoint());
 

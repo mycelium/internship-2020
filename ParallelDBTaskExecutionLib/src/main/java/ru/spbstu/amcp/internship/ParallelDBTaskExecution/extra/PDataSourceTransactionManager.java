@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ru.spbstu.amcp.internship.ParallelDBTaskExecution.support;
+package ru.spbstu.amcp.internship.ParallelDBTaskExecution.extra;
 
 
 import java.sql.Connection;
@@ -24,7 +24,6 @@ import java.sql.Statement;
 import javax.sql.DataSource;
 
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.context.annotation.Bean;
 import org.springframework.lang.Nullable;
 import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.transaction.TransactionDefinition;

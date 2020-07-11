@@ -10,7 +10,6 @@ public class TestMain {
         String password = "root";
         Class.forName("org.postgresql.Driver");
 
-        // Создаем подключение и создаем объект типа Statement
         try(Connection connection = DriverManager.getConnection(url, userName, password);
             Statement stat = connection.createStatement()) {
 
@@ -28,16 +27,20 @@ public class TestMain {
 
             Savepoint spt = connection.setSavepoint();
             stat.executeUpdate(command2);
+            Savepoint spt2 = connection.setSavepoint();
             stat.executeUpdate(command3);
             stat.executeUpdate(command4);
 
             connection.rollback(spt);
             connection.releaseSavepoint(spt);
+            connection.releaseSavepoint(spt2);
             stat.executeUpdate(command3);
-            spt = connection.setSavepoint();
-            stat.executeUpdate(command4);
-            connection.rollback(spt);
-            connection.releaseSavepoint(spt);
+
+//            spt = connection.setSavepoint();
+//            stat.executeUpdate(command4);
+//
+//            connection.rollback(spt);
+//            connection.releaseSavepoint(spt);
             connection.commit();
 
 
