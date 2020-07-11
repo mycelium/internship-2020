@@ -1,10 +1,13 @@
 package ru.spbstu.amcp.internship.ParallelDBTaskExecution.concurtx;
 
+import java.util.function.Function;
+import java.util.function.Supplier;
+
 public interface ITxAction {
 
-    TxAction thenRun();
+    TxAction startAction(Supplier<? extends Object> action);
+    TxAction putAnotherAction(Function<? super Object, ?> action);
 
-    //Можно расширить до возврата полезных значений
-    void get();
+    Object get();
 
 }

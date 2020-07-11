@@ -92,14 +92,26 @@ public class UserServiceImpl implements UserService {
         ctxm.executeConcurTx(()->{
             dao.insert(new User(4, "Begin of ConcurTxTransaction"));
 
-            new TxAction(ctxm);
+            new TxAction(ctxm).startAction(()->{
+                dao.insert(new User(5, "Begin of innerAction"));
+                return null;
+            }).putAnotherAction(prev->{
+                dao.insert(new User(6, "Next action1 in inner"));
+                dao.insert(new User(7, "Next action2 in inner"));
+
+                return null;
+            }).putAnotherAction(prev->{
+
+                //Откатится вся транзакция
+                dao.insert(new User(7, "Next action3 in inner"));
+                return null;
+            });
 
             return null;
         });
-        Future v;
 
         new ConcurTxManager(mytransactionManager).executeConcurTx(()->{
-            dao.insert(new User(5, "Other ConcurTxTransaction2"));
+            dao.insert(new User(15, "Other ConcurTxTransaction2"));
             return null;
         });
 
