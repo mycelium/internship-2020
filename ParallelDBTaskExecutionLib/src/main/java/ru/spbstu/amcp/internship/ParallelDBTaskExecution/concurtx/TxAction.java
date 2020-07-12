@@ -120,18 +120,20 @@ public class TxAction implements ITxAction {
      * В конце необходимо выключить каждый созданный пул.
      * @return результат выполнения последней задачи
      */
-    Object get() {
+    public Object get() throws ExecutionException {
         try {
             return completableFuture.get();
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (ExecutionException e) {
-            e.printStackTrace();
+            throw e;
         }finally {
             //Закрываем все однопоточные исполнители
             for (var executor: executorServices) {
-                System.out.println("Executor is closed");
-                executor.shutdown();
+                if(!executor.isShutdown()) {
+                    executor.shutdown();
+                    System.out.println("Executor shutdown");
+                }
             }
         }
         return null;

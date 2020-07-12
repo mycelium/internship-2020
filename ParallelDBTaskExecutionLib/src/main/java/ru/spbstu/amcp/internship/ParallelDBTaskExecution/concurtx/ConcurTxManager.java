@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 
 /**
@@ -20,8 +21,20 @@ import java.util.function.Supplier;
 public class ConcurTxManager implements IConcurTxManager {
 
     /**
+     * Выполняется ли транзакция
+     */
+    public boolean isActiveTx = false;
+
+    /**
+     * Данное свойство хранит номер политики отката транзакции
+     */
+    @Getter
+    private int txpolicy;
+
+    /**
      * Данное свойство запускает транзакцию в императивном стиле.
      */
+    @Getter
     private TransactionTemplate transactionTemplate;
 
     /**
@@ -74,6 +87,11 @@ public class ConcurTxManager implements IConcurTxManager {
      * @return - результат выполнения тразакции
      */
     public <T> T executeConcurTx(Supplier<T> action){
+        if(isActiveTx) {
+            System.out.println("Transaction is already active");
+            return null;
+        }
+        isActiveTx = true;
         return transactionTemplate.execute(s -> {
             status = s;
             getTransactionPropertiesFromTransactionSynchronizationManager();
@@ -83,7 +101,7 @@ public class ConcurTxManager implements IConcurTxManager {
             //Блокируем исполнение потока,
             //если есть хотя бы один дочерний поток
             commitLock();
-
+            isActiveTx = false;
             return result;
         });
     }
@@ -160,7 +178,14 @@ public class ConcurTxManager implements IConcurTxManager {
      */
     private void commitLock(){
         while(!childTxActionQueue.isEmpty()){
-            getAnyChildTxAction().get();
+            try {
+                getAnyChildTxAction().get();
+            }catch (ExecutionException exception){
+                System.out.println("EXCEPTION IN CHILD THREAD!");
+                if(txpolicy ==
+                        TransactionRollbackPolicy.ROLLBACK_WHOLE_TX_ON_EXECUTION_EXCEPTION_IN_ANY_THREAD)
+                    this.setRollbackOnly();
+            }
         }
     }
 
@@ -181,6 +206,7 @@ public class ConcurTxManager implements IConcurTxManager {
      * @param transactionTemplate объект для запуска транзакции
      */
     public ConcurTxManager(TransactionTemplate transactionTemplate){
+        txpolicy = TransactionRollbackPolicy.DEFAULT_SPRING_JDBC_POLICY;
         this.transactionTemplate = transactionTemplate;
     }
 
@@ -191,7 +217,19 @@ public class ConcurTxManager implements IConcurTxManager {
      *                           который будет формировать транзакцию
      */
     public ConcurTxManager(PlatformTransactionManager transactionManager){
+        txpolicy = TransactionRollbackPolicy.DEFAULT_SPRING_JDBC_POLICY;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
+    }
+
+    /**
+     * Метод устанавливает политику отката транзакции
+     * @param txpolicy политика отката
+     */
+    public void setTxpolicy(int txpolicy){
+        if(txpolicy != TransactionRollbackPolicy.DEFAULT_SPRING_JDBC_POLICY
+        && txpolicy != TransactionRollbackPolicy.ROLLBACK_WHOLE_TX_ON_EXECUTION_EXCEPTION_IN_ANY_THREAD)
+            throw new IllegalArgumentException("No such rollback policy");
+        this.txpolicy = txpolicy;
     }
 
 }

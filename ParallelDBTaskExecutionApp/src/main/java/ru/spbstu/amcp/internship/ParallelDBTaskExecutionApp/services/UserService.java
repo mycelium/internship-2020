@@ -5,6 +5,4 @@ import ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp.dao.UserDao;
 
 
 public interface UserService {
-
-     void createUser(int id, String name);
 }

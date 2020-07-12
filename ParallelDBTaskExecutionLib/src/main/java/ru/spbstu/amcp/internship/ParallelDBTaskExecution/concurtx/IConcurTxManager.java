@@ -9,5 +9,7 @@ public interface IConcurTxManager {
     void rollbackToSavepoint(Object savePoint);
     void releaseSavepoint(Object savePoint);
     void setRollbackOnly();
+    void setTxpolicy(int txpolicy);
+    int getTxpolicy();
 
 }

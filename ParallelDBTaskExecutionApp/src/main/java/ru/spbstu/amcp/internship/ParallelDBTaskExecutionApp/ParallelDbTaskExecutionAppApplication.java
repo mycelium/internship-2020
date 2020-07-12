@@ -17,18 +17,10 @@ public class ParallelDbTaskExecutionAppApplication {
 
 		ApplicationContext context = SpringApplication.run(ParallelDbTaskExecutionAppApplication.class, args);
 		UserServiceImpl userService = context.getBean(UserServiceImpl.class);
-		userService.createUser(3, "User");
-//		try {
-//			userService.userTestNonParallelDeclarativeTransaction();
-//		}catch (Exception rollback){}
-//		userService.userTestParallelImperativeTransaction();
-//		userService.exceptionTransaction();
-
-//		for(int i = 0; i < 100000; i++){
-//			userService.createUser(i+15, "Test");
-//		}
 
 		userService.myTx();
+
+
 		System.out.println("DONE MAIN!");
 
 

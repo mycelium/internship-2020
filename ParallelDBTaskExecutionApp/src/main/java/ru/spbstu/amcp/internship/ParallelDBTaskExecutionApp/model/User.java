@@ -7,8 +7,6 @@ import lombok.Setter;
 @Data
 @AllArgsConstructor
 public class User {
-
     private int id;
     private String name;
-
 }
