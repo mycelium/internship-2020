@@ -11,39 +11,77 @@ import java.util.concurrent.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-/***
- * Идея: Делегировать работу цепочки CompletableFuture
- * Проблема: thenRun у CompletableFuture может выполнятся
- * в разных потоках
- * Решение: Использовать newSingleThreadExecutor и метод
- * thenRunAsync с передачей executorService для контроля
- * потока
+
+/**
+ * Класс, объекты которого могут формировать цепочку задач
+ * (как асинхронных, так и последовательных) в рамках транзакции,
+ * созданной объектом класса ConcurTxManager.
+ *
+ * Основая идея работы заключается в запуске асинхронных
+ * и последовательных задач с помощью
+ * CompletableFuture. Однако CompletableFuture может выполнять
+ * действие из thenApply не в том потоке, который выполнял до этого
+ * supplyAsync. Поэтому решено в данном классе для вызова как асинхронных,
+ * так и последовательных задач использовать thenApplyAsync с явным указанием
+ * потока (на самом деле пула потоков из одного потока), который будет
+ * выполнять действие из thenApplyAsync.
  */
 
 @Component
 public class TxAction implements ITxAction {
 
+    /**
+     * Менеджер транзакции, управляющий асинхронными и последовательными
+     * цепочками задач.
+     */
     ConcurTxManager concurTxManager;
+    /**
+     * Список пулов из одного потока, каждый из которых выполняет
+     * последовательную цепочку задач. При создании в другом потоке
+     * новой последовательной цепочки задач (асинхронной)
+     * создаётся пул из одного потока.
+     */
     List<ExecutorService> executorServices = new ArrayList<>();
+
+    /**
+     * Свойство, которое необходимо для того, чтобы следить за
+     * процессом выполнения цепочек задач в рамках объекта TxAction
+     * и не делать преждевременный коммит в родительском потоке.
+     */
     CompletableFuture<?> completableFuture = null;
 
+    /**
+     * При создании нового объекта необходимо сформировать
+     * хотя бы один пул из одного потока для выполнения цепочки
+     * последовательных задач.
+     * @param concurTxManager
+     */
     public TxAction(ConcurTxManager concurTxManager) {
         this.concurTxManager = concurTxManager;
         executorServices.add(Executors.newSingleThreadExecutor());
         concurTxManager.putChildTxAction(this);
     }
 
-    //Стартуем первую задачу
+    /**
+     * Запуск первой цепочки последовательных задач с передачей
+     * всех свойств транзакции в поток из пула.
+     * @param action
+     * @return
+     */
     @Override
     public TxAction startAction(Supplier<? extends Object> action) {
         completableFuture = CompletableFuture.supplyAsync(()->{
+            //Передача свойств транзакции дочернему потоку
             setTransactionProperties();
             return action.get();
         }, executorServices.get(0));
         return this;
     }
 
-    //Добавляем ещё одну задачу в очередь на выполнение в рамках одного потока
+    /**
+     *    Метод добавляет ещё одну задачу в последовательную цепочку
+     *    для будущего выполнения в рамках того же потока из пула
+     */
     @Override
     public TxAction putAnotherAction(Function<? super Object, ?> action) {
         //Транзакция останется действительной
@@ -52,15 +90,22 @@ public class TxAction implements ITxAction {
         return this;
     }
 
-    //Добавляем ещё одну задачу в очередь на выполнение в рамках уже другого потока
+    /**
+     * Метод добавляет одну задачу в новую последовательную цепочку, выполняющуюся
+     * уже в другом потоке из нового пула. В новый поток передаются все свойства
+     * транзакции.
+     * @param action
+     * @return
+     */
     @Override
     public TxAction putAnotherActionAsync(Function<? super Object, ?> action) {
-        //Добавляю новый исполнитель явно для CompletableFuture, чтобы
-        //запустить выполнение в том новом потоке, который мне нужен
+        //Добавляется новый исполнитель явно для CompletableFuture, чтобы
+        //запустить выполнение в том потоке, который необходим
         executorServices.add(Executors.newSingleThreadExecutor());
 
         completableFuture = completableFuture.thenApplyAsync(
                 previousResult->{
+                    //Передача свойств транзакции дочернему потоку
                     setTransactionProperties();
                     return action.apply(previousResult);
                 },
@@ -69,6 +114,12 @@ public class TxAction implements ITxAction {
     }
 
 
+    /**
+     * Метод блокирует поток, его вызвавший до завершения всех
+     * созданных цепочек задач.
+     * В конце необходимо выключить каждый созданный пул.
+     * @return результат выполнения последней задачи
+     */
     Object get() {
         try {
             return completableFuture.get();
@@ -86,7 +137,9 @@ public class TxAction implements ITxAction {
         return null;
     }
 
-    //Устанавливаю свойства текущей транзакции в дочернем потоке
+    /**
+     * Метод устанавливает свойства транзакции в дочернем потоке
+     */
     private void setTransactionProperties(){
         List<Object> props = new ArrayList<>();
         props.addAll(concurTxManager.getTransactionProperties());

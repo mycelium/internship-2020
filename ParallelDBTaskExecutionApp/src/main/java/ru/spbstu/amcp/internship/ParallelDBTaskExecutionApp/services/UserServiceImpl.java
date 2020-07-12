@@ -118,7 +118,23 @@ public class UserServiceImpl implements UserService {
                 return null;
             }).putAnotherActionAsync(prev->{
                 dao.insert(new User(55, "Next action"));
-                ctxm.setRollbackOnly();
+
+                Object savePoint1 = ctxm.createSavepoint();
+                new TxAction(ctxm).startAction(()->{
+                    dao.insert(new User(66,"Inner in Inner"));
+                    return null;
+                }).putAnotherActionAsync(prevRes->{
+                    dao.insert(new User(77, "Async Inner"));
+                    return null;
+                });
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                ctxm.rollbackToSavepoint(savePoint1);
+
+//                ctxm.setRollbackOnly();
                 //dao.insert(new User(55, "Next action"));
                 return null;
             });

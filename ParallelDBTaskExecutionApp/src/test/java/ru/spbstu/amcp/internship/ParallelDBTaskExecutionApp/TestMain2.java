@@ -1,5 +1,7 @@
 package ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp;
 
+import net.bytebuddy.utility.visitor.ExceptionTableSensitiveMethodVisitor;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
@@ -19,6 +21,7 @@ public class TestMain2 {
         if(a.poll() == null){
             System.out.println("123");
         }
+
 //
 
 
@@ -30,25 +33,28 @@ public class TestMain2 {
 //            System.out.println(Thread.currentThread().getName());
 //        }, exec);
 //
-//        CompletableFuture<Integer> com = CompletableFuture.supplyAsync(()->{
-//            try {
-//                Thread.sleep(1000);
-//                System.out.println("Name:" + Thread.currentThread().getName());
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
+        CompletableFuture<Integer> com = CompletableFuture.supplyAsync(()->{
+            try {
+                Thread.sleep(1000);
+                System.out.println("Name:" + Thread.currentThread().getName());
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            throw new RuntimeException("Exception RUNTIME");
 //            return 5;
-//        }, exec).thenApplyAsync(va->{
-//            try {
-//                Thread.sleep(2000);
-//                System.out.println("Name:" + Thread.currentThread().getName());
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-//            return 6;
-//        },exec);
-//
-//        System.out.println(com.get());
+        }, exec).thenApplyAsync(va->{
+            try {
+                Thread.sleep(2000);
+                System.out.println("Name:" + Thread.currentThread().getName());
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return 6;
+        },exec);
+
+
+        System.out.println(com.get());
+
 
         exec.shutdown();
     }
