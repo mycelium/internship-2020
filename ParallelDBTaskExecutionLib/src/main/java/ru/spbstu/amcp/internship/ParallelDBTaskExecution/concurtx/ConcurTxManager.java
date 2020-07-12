@@ -1,6 +1,7 @@
 package ru.spbstu.amcp.internship.ParallelDBTaskExecution.concurtx;
 
 import lombok.Getter;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -12,8 +13,8 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Supplier;
 
-
-public class ConcurTxManager {
+@Service
+public class ConcurTxManager implements IConcurTxManager {
 
     //Для создания транзакции
     private TransactionTemplate transactionTemplate;
@@ -30,12 +31,12 @@ public class ConcurTxManager {
     private List<Object> transactionProperties = new ArrayList<Object>();
 
     //Запомнить новый дочерний поток в транзакции
-    public void putChildTxAction(TxAction child){
+    void putChildTxAction(TxAction child){
         childTxActionQueue.add(child);
     }
 
     //Получить один из дочерних потоков в транзакции
-    public TxAction getAnyChildTxAction(){
+    TxAction getAnyChildTxAction(){
         return childTxActionQueue.poll();
     }
 
@@ -53,6 +54,22 @@ public class ConcurTxManager {
 
             return result;
         });
+    }
+
+    public Object createSavepoint(){
+        return status.createSavepoint();
+    }
+
+    public void rollbackToSavepoint(Object savePoint){
+        status.rollbackToSavepoint(savePoint);
+    }
+
+    public void releaseSavepoint(Object savePoint){
+        status.releaseSavepoint(savePoint);
+    }
+
+    public void setRollbackOnly(){
+        status.setRollbackOnly();
     }
 
 

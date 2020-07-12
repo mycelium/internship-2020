@@ -1,5 +1,6 @@
 package ru.spbstu.amcp.internship.ParallelDBTaskExecution.concurtx;
 
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -18,6 +19,8 @@ import java.util.function.Supplier;
  * thenRunAsync с передачей executorService для контроля
  * потока
  */
+
+@Component
 public class TxAction implements ITxAction {
 
     ConcurTxManager concurTxManager;
@@ -40,7 +43,7 @@ public class TxAction implements ITxAction {
         return this;
     }
 
-    //Добавляем ещу одну задачу в очередь на выполнение в рамках одного потока
+    //Добавляем ещё одну задачу в очередь на выполнение в рамках одного потока
     @Override
     public TxAction putAnotherAction(Function<? super Object, ?> action) {
         //Транзакция останется действительной
@@ -49,18 +52,34 @@ public class TxAction implements ITxAction {
         return this;
     }
 
-    //Пока черновой вариант
+    //Добавляем ещё одну задачу в очередь на выполнение в рамках уже другого потока
     @Override
-    public Object get() {
+    public TxAction putAnotherActionAsync(Function<? super Object, ?> action) {
+        //Добавляю новый исполнитель явно для CompletableFuture, чтобы
+        //запустить выполнение в том новом потоке, который мне нужен
+        executorServices.add(Executors.newSingleThreadExecutor());
+
+        completableFuture = completableFuture.thenApplyAsync(
+                previousResult->{
+                    setTransactionProperties();
+                    return action.apply(previousResult);
+                },
+                executorServices.get(executorServices.size()-1));
+        return this;
+    }
+
+
+    Object get() {
         try {
-            //Получаем результат последнего действия из цепочки
-            Object result = completableFuture.get();
+            return completableFuture.get();
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (ExecutionException e) {
             e.printStackTrace();
         }finally {
+            //Закрываем все однопоточные исполнители
             for (var executor: executorServices) {
+                System.out.println("Executor is closed");
                 executor.shutdown();
             }
         }

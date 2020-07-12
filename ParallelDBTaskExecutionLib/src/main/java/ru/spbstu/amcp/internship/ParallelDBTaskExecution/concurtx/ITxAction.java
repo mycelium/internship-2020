@@ -7,7 +7,6 @@ public interface ITxAction {
 
     TxAction startAction(Supplier<? extends Object> action);
     TxAction putAnotherAction(Function<? super Object, ?> action);
-
-    Object get();
+    TxAction putAnotherActionAsync(Function<? super Object, ?> action);
 
 }

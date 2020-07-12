@@ -100,10 +100,26 @@ public class UserServiceImpl implements UserService {
                 dao.insert(new User(7, "Next action2 in inner"));
 
                 return null;
-            }).putAnotherAction(prev->{
-
-                //Откатится вся транзакция
-                dao.insert(new User(7, "Next action3 in inner"));
+            }).putAnotherActionAsync(prev->{
+                //throw new RuntimeException("Will Rollback?");
+                Object savePoint = new Object();
+                try {
+                    savePoint = ctxm.createSavepoint();
+                    dao.insert(new User(7, "Next action3 in inner"));
+                }catch (Exception e){
+                    System.out.println(e.getMessage());
+                    ctxm.rollbackToSavepoint(savePoint);
+                }finally {
+                    ctxm.releaseSavepoint(savePoint);
+                }
+                dao.insert(new User(8, "Next action3 in inner"));
+                dao.insert(new User(9, "Next action3 in inner"));
+                dao.insert(new User(10, "Next action3 in inner"));
+                return null;
+            }).putAnotherActionAsync(prev->{
+                dao.insert(new User(55, "Next action"));
+                ctxm.setRollbackOnly();
+                //dao.insert(new User(55, "Next action"));
                 return null;
             });
 
