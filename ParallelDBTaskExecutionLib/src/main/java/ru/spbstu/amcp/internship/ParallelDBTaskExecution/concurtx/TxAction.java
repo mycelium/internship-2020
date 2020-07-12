@@ -21,12 +21,12 @@ import java.util.function.Supplier;
 public class TxAction implements ITxAction {
 
     ConcurTxManager concurTxManager;
-    ExecutorService executorService;
+    List<ExecutorService> executorServices = new ArrayList<>();
     CompletableFuture<?> completableFuture = null;
 
     public TxAction(ConcurTxManager concurTxManager) {
         this.concurTxManager = concurTxManager;
-        executorService = Executors.newSingleThreadExecutor();
+        executorServices.add(Executors.newSingleThreadExecutor());
         concurTxManager.putChildTxAction(this);
     }
 
@@ -36,7 +36,7 @@ public class TxAction implements ITxAction {
         completableFuture = CompletableFuture.supplyAsync(()->{
             setTransactionProperties();
             return action.get();
-        }, executorService);
+        }, executorServices.get(0));
         return this;
     }
 
@@ -44,7 +44,8 @@ public class TxAction implements ITxAction {
     @Override
     public TxAction putAnotherAction(Function<? super Object, ?> action) {
         //Транзакция останется действительной
-        completableFuture = completableFuture.thenApplyAsync(action, executorService);
+        completableFuture = completableFuture.thenApplyAsync(action,
+                executorServices.get(executorServices.size()-1));
         return this;
     }
 
@@ -53,11 +54,15 @@ public class TxAction implements ITxAction {
     public Object get() {
         try {
             //Получаем результат последнего действия из цепочки
-            return completableFuture.get();
+            Object result = completableFuture.get();
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (ExecutionException e) {
             e.printStackTrace();
+        }finally {
+            for (var executor: executorServices) {
+                executor.shutdown();
+            }
         }
         return null;
     }

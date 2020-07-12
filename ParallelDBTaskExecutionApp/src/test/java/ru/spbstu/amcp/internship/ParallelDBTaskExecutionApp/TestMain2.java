@@ -17,37 +17,38 @@ public class TestMain2 {
 
         Queue<Object> a = new ConcurrentLinkedDeque<>();
         if(a.poll() == null){
-            System.out.println("Hello123123");
+            System.out.println("123");
         }
 //
 
-        CompletableFuture.runAsync(() -> {
-            System.out.println(Thread.currentThread().getName());
-        }, exec).thenRunAsync(() -> {
-            System.out.println(Thread.currentThread().getName());
-        }, exec).thenRunAsync(() -> {
-            System.out.println(Thread.currentThread().getName());
-        }, exec);
 
-        CompletableFuture<Integer> com = CompletableFuture.supplyAsync(()->{
-            try {
-                Thread.sleep(1000);
-                System.out.println("Name:" + Thread.currentThread().getName());
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            return 5;
-        }, exec).thenApplyAsync(va->{
-            try {
-                Thread.sleep(2000);
-                System.out.println("Name:" + Thread.currentThread().getName());
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            return 6;
-        },exec);
-
-        System.out.println(com.get());
+//        CompletableFuture.runAsync(() -> {
+//            System.out.println(Thread.currentThread().getName());
+//        }, exec).thenRunAsync(() -> {
+//            System.out.println(Thread.currentThread().getName());
+//        }, exec).thenRunAsync(() -> {
+//            System.out.println(Thread.currentThread().getName());
+//        }, exec);
+//
+//        CompletableFuture<Integer> com = CompletableFuture.supplyAsync(()->{
+//            try {
+//                Thread.sleep(1000);
+//                System.out.println("Name:" + Thread.currentThread().getName());
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//            return 5;
+//        }, exec).thenApplyAsync(va->{
+//            try {
+//                Thread.sleep(2000);
+//                System.out.println("Name:" + Thread.currentThread().getName());
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//            return 6;
+//        },exec);
+//
+//        System.out.println(com.get());
 
         exec.shutdown();
     }
