@@ -23,7 +23,8 @@ public class ConcurTxManager implements IConcurTxManager {
     /**
      * Выполняется ли транзакция
      */
-    public boolean isActiveTx = false;
+    @Getter
+    private boolean isActiveTx = false;
 
     /**
      * Данное свойство хранит номер политики отката транзакции

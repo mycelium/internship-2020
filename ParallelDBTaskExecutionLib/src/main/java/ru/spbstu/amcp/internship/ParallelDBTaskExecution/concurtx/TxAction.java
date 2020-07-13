@@ -57,6 +57,9 @@ public class TxAction implements ITxAction {
      * @param concurTxManager
      */
     public TxAction(ConcurTxManager concurTxManager) {
+        if(!concurTxManager.isActiveTx()){
+            throw new RuntimeException("Can't create TxAction outside transaction");
+        }
         this.concurTxManager = concurTxManager;
         executorServices.add(Executors.newSingleThreadExecutor());
         concurTxManager.putChildTxAction(this);

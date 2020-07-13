@@ -226,6 +226,15 @@ public class UserServiceImpl implements UserService {
             return null;
         });
 
+        try{
+        new TxAction(ctxm3).startAction(()->{
+
+            return null;
+        });
+        }catch (RuntimeException e){
+            System.out.println("expected exception");
+        }
+
     }
 
 
