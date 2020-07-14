@@ -56,6 +56,7 @@ public class ParallelDbTaskExecutionAppApplication {
 		pcm.restoreOneConstraint("test_schema", "table_name", "tata", ConstraintType.INDEX);
 
 		pcm.dropOneConstraint("test_schema", "table_name", "pkk",  ConstraintType.PK);
+		pcm.dropOneConstraint("test_schema", "table_name", "pkk",  ConstraintType.PK);
 		pcm.restoreOneConstraint("test_schema", "table_name", "pkk", ConstraintType.PK);
 
 		pcm.dropOneConstraint("public", "car", "distfk", ConstraintType.FK);

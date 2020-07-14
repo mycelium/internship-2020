@@ -98,23 +98,30 @@ public class PostgresConstraintsManager {
     }
 
     /**
-     * Метод восстнавливает constraint
+     *
      */
-    public void restoreOneConstraint(String schemaName, String tableName, String constraint, String constraintType){
-        switchOneConstraint(schemaName,  tableName,  constraint,  constraintType, false);
+    public void restoreAllConstraintsInTable(String schemaName, String tableName){
+
     }
 
     /**
-     * Метод удаляет constraint из таблицы
+     * Метод восстнавливает один constraint
      */
-    public void dropOneConstraint(String schemaName, String tableName, String constraint, String constraintType){
-        switchOneConstraint(schemaName,  tableName,  constraint,  constraintType, true);
+    public Constraint restoreOneConstraint(String schemaName, String tableName, String constraint, String constraintType){
+        return switchOneConstraint(schemaName,  tableName,  constraint,  constraintType, false);
+    }
+
+    /**
+     * Метод удаляет один constraint из таблицы
+     */
+    public Constraint dropOneConstraint(String schemaName, String tableName, String constraint, String constraintType){
+        return switchOneConstraint(schemaName,  tableName,  constraint,  constraintType, true);
     }
 
     /**
      * Метод переключает constraint из выключенного во включенное состояние (drop = false) и наоборот (drop = true)
      */
-    private void switchOneConstraint(String schemaName, String tableName, String constraint, String constraintType, boolean drop){
+    private Constraint switchOneConstraint(String schemaName, String tableName, String constraint, String constraintType, boolean drop){
 
         if(!constraintType.equals(ConstraintType.CHECK) && !constraintType.equals(ConstraintType.UNIQUE)
          && !constraintType.equals(ConstraintType.DEFAULT) && !constraintType.equals(ConstraintType.FK)
@@ -139,27 +146,26 @@ public class PostgresConstraintsManager {
                                 && c.getConname().equals(constraint)){
                             performSwitching = true;
                             con = c;
-                            break loop;
                         }
+                        break loop;
                     case ConstraintType.INDEX:
                         if(c.getContype().equals(ConstraintType.INDEX) && c.getIndexName().equals(constraint)){
                             performSwitching = true;
                             con = c;
-                            break loop;
                         }
+                        break loop;
                     case ConstraintType.NOT_NULL:
                         if(c.getContype().equals(ConstraintType.NOT_NULL) && c.getAttname().equals(constraint)){
                             performSwitching = true;
                             con = c;
-                            break loop;
                         }
+                        break loop;
                     case ConstraintType.DEFAULT:
                         if(c.getContype().equals(ConstraintType.DEFAULT) && c.getAttname().equals(constraint)){
                             performSwitching = true;
                             con = c;
-                            break loop;
                         }
-
+                        break loop;
                 }
 
             }
@@ -174,7 +180,7 @@ public class PostgresConstraintsManager {
                 con.setDropped(false);
             }
         }
-
+        return con;
     }
 
 
