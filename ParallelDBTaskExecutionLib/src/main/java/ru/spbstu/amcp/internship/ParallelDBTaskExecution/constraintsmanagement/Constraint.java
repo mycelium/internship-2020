@@ -114,9 +114,14 @@ public class Constraint {
     public static Constraint buildConstraintDefault(String schemaName,
                                                     String tableName, String attname,
                                                     String defValueType, String defValue){
-        return new Constraint(schemaName,
+        Constraint dc = new Constraint(schemaName,
                 tableName, attname,
                 defValueType, defValue);
+        dc.dropDDL = "ALTER TABLE "+schemaName+"."+tableName+" ALTER COLUMN "+attname+" DROP DEFAULT;";
+        dc.restoreDDL = "ALTER TABLE "+schemaName+"."+tableName+" ALTER COLUMN "+attname+" SET DEFAULT " +
+                ""+defValue+" ;";
+
+        return dc;
     }
 
     /**
@@ -178,6 +183,19 @@ public class Constraint {
 
     public static Constraint buildDummyConstraint(){
         return new Constraint();
+    }
+
+    int determinePriority(){
+        switch (contype){
+            case ConstraintType.PK:
+                return 0;
+            case ConstraintType.FK:
+                return 1;
+            case ConstraintType.UNIQUE:
+                return 2;
+            default:
+                return 3;
+        }
     }
 
 

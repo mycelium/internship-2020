@@ -80,6 +80,7 @@ public class PostgresConstraintsManager {
                 });
 
 
+        //Получить Индексы
         jdbc.query("SELECT schemaname, tablename, indexname, indexdef " +
                 "FROM pg_catalog.pg_indexes " +
                 "where schemaname = '"+schemaName+"' and tablename = '"+tableName+"'",
@@ -93,22 +94,81 @@ public class PostgresConstraintsManager {
 
         tableConstraints.putIfAbsent(Arrays.asList(schemaName, tableName), constraints);
         return constraints;
+    }
 
+    /**
+     * Метод удаляет все constraints заданных видов из таблицы.
+     */
+    public List<Constraint>  dropAllConstraintsInTable(String schemaName, String tableName, boolean passException, String... ConstraintTypes){
+
+        for(var e : ConstraintTypes){
+            if(!e.equals(ConstraintType.CHECK) && !e.equals(ConstraintType.UNIQUE)
+                    && !e.equals(ConstraintType.DEFAULT) && !e.equals(ConstraintType.FK)
+                    && !e.equals(ConstraintType.INDEX) && !e.equals(ConstraintType.PK) &&
+                       !e.equals(ConstraintType.NOT_NULL))
+                throw new RuntimeException("Invalid constraint type");
+        }
+
+        List<Constraint> constraints = tableConstraints.get(Arrays.asList(schemaName, tableName));
+        Collections.sort(constraints, Comparator.comparingInt(Constraint::determinePriority));
+
+        List<Constraint> dropped = new ArrayList<>();
+
+
+        for(var c: constraints){
+            if(!c.isDropped() && Arrays.stream(ConstraintTypes).anyMatch(type -> type.equals(c.getContype()))){
+                try{
+                    jdbc.execute(c.getDropDDL());
+                }catch (RuntimeException e){
+                    if(!passException)
+                        throw e;
+
+                    System.out.println(e.getMessage());
+                }
+                c.setDropped(true);
+                dropped.add(c);
+            }
+        }
+
+        return dropped;
 
     }
 
     /**
-     *
+     * Метод восстанавливает все constraints для заданной таблицы
      */
-    public void restoreAllConstraintsInTable(String schemaName, String tableName){
+    public void restoreAllConstraintsInTable(String schemaName, String tableName, boolean passException){
 
+        List<Constraint> constraints = tableConstraints.get(Arrays.asList(schemaName, tableName));
+
+        for(var c: constraints){
+            if(c.isDropped()){
+                try{
+                    jdbc.execute(c.getRestoreDDL());
+                }catch (RuntimeException e){
+                    if(!passException)
+                        throw e;
+                    System.out.println(e.getMessage());
+                }
+                c.setDropped(false);
+            }
+        }
     }
 
     /**
      * Метод восстнавливает один constraint
      */
-    public Constraint restoreOneConstraint(String schemaName, String tableName, String constraint, String constraintType){
-        return switchOneConstraint(schemaName,  tableName,  constraint,  constraintType, false);
+    public Constraint restoreOneConstraint(String schemaName, String tableName, String constraint, String constraintType, boolean passException){
+        if(!passException)
+            return switchOneConstraint(schemaName,  tableName,  constraint,  constraintType, false);
+        else{
+            try{
+                return switchOneConstraint(schemaName,  tableName,  constraint,  constraintType, false);
+            }catch (RuntimeException e){
+                System.out.println(e.getMessage());
+            }
+        }
+        return null;
     }
 
     /**
@@ -133,7 +193,7 @@ public class PostgresConstraintsManager {
 
         Constraint con = Constraint.buildDummyConstraint();
         boolean performSwitching = false;
-        loop: for (var c: constraints){
+        loop: for (Constraint c: constraints){
             if(c.isDropped()==!drop && c.getSchemaName().equals(schemaName) && c.getTableName().equals(tableName)){
 
                 switch (constraintType){
@@ -146,26 +206,30 @@ public class PostgresConstraintsManager {
                                 && c.getConname().equals(constraint)){
                             performSwitching = true;
                             con = c;
+                            break loop;
                         }
-                        break loop;
+                        break;
                     case ConstraintType.INDEX:
                         if(c.getContype().equals(ConstraintType.INDEX) && c.getIndexName().equals(constraint)){
                             performSwitching = true;
                             con = c;
+                            break loop;
                         }
-                        break loop;
+                        break;
                     case ConstraintType.NOT_NULL:
                         if(c.getContype().equals(ConstraintType.NOT_NULL) && c.getAttname().equals(constraint)){
                             performSwitching = true;
                             con = c;
+                            break loop;
                         }
-                        break loop;
+                        break;
                     case ConstraintType.DEFAULT:
                         if(c.getContype().equals(ConstraintType.DEFAULT) && c.getAttname().equals(constraint)){
                             performSwitching = true;
                             con = c;
+                            break loop;
                         }
-                        break loop;
+                        break;
                 }
 
             }

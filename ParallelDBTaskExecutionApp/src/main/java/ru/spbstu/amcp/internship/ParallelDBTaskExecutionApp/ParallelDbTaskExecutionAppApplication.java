@@ -4,6 +4,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.bind.annotation.RestController;
+import ru.spbstu.amcp.internship.ParallelDBTaskExecution.concurtx.ConcurTxManager;
+import ru.spbstu.amcp.internship.ParallelDBTaskExecution.concurtx.TxAction;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecution.constraintsmanagement.Constraint;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecution.constraintsmanagement.ConstraintType;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecution.constraintsmanagement.PostgresConstraintsManager;
@@ -52,21 +54,62 @@ public class ParallelDbTaskExecutionAppApplication {
 		List<Constraint> constraints = pcm.getAndInitAllConstraints("public", "car");
 		List<Constraint> constraints2 = pcm.getAndInitAllConstraints("test_schema", "table_name");
 		List<Constraint> constraints3 = pcm.getAndInitAllConstraints("public", "fruit");
-		pcm.dropOneConstraint("test_schema", "table_name", "tata", ConstraintType.INDEX);
-		pcm.restoreOneConstraint("test_schema", "table_name", "tata", ConstraintType.INDEX);
+//		pcm.dropOneConstraint("test_schema", "table_name", "tata", ConstraintType.INDEX);
+//		pcm.restoreOneConstraint("test_schema", "table_name", "tata", ConstraintType.INDEX);
+//
+//		pcm.dropOneConstraint("test_schema", "table_name", "pkk",  ConstraintType.PK);
+//		pcm.dropOneConstraint("test_schema", "table_name", "pkk",  ConstraintType.PK);
+//		pcm.restoreOneConstraint("test_schema", "table_name", "pkk", ConstraintType.PK);
+//
+//		pcm.dropOneConstraint("public", "car", "prettyfk", ConstraintType.FK);
+//		pcm.dropOneConstraint("public", "car", "unique_name", ConstraintType.UNIQUE);
+//		pcm.dropOneConstraint("public", "fruit", "some_checky", ConstraintType.CHECK);
+//		pcm.dropOneConstraint("public", "car", "car_idx", ConstraintType.INDEX);
+//		pcm.restoreOneConstraint("public", "car", "unique_name", ConstraintType.UNIQUE);
+//		pcm.restoreOneConstraint("public", "car", "prettyfk", ConstraintType.FK);
+//		pcm.restoreOneConstraint("public", "car", "car_idx", ConstraintType.INDEX);
+//		pcm.restoreOneConstraint("public", "fruit", "some_checky", ConstraintType.CHECK);
+//
+//		pcm.dropOneConstraint("public", "car", "name", ConstraintType.DEFAULT);
+//		pcm.restoreOneConstraint("public", "car", "name", ConstraintType.DEFAULT);
 
-		pcm.dropOneConstraint("test_schema", "table_name", "pkk",  ConstraintType.PK);
-		pcm.dropOneConstraint("test_schema", "table_name", "pkk",  ConstraintType.PK);
-		pcm.restoreOneConstraint("test_schema", "table_name", "pkk", ConstraintType.PK);
 
-		pcm.dropOneConstraint("public", "car", "distfk", ConstraintType.FK);
-		pcm.dropOneConstraint("public", "car", "unique_name", ConstraintType.UNIQUE);
-		pcm.dropOneConstraint("public", "fruit", "some_checky", ConstraintType.CHECK);
-		pcm.dropOneConstraint("public", "car", "car_idx", ConstraintType.INDEX);
-		pcm.restoreOneConstraint("public", "car", "unique_name", ConstraintType.UNIQUE);
-		pcm.restoreOneConstraint("public", "car", "distfk", ConstraintType.FK);
-		pcm.restoreOneConstraint("public", "car", "car_idx", ConstraintType.INDEX);
-		pcm.restoreOneConstraint("public", "fruit", "some_checky", ConstraintType.CHECK);
+		List<Constraint> cons = pcm.getAndInitAllConstraints("test_schema", "car");
+		pcm.dropOneConstraint("test_schema", "car", "unique_name", ConstraintType.UNIQUE);
+		pcm.dropOneConstraint("test_schema", "car", "car_pkey", ConstraintType.PK);
+		pcm.dropOneConstraint("test_schema", "car", "value", ConstraintType.DEFAULT);
+		pcm.dropOneConstraint("test_schema", "car", "autointf", ConstraintType.NOT_NULL);
+		pcm.dropOneConstraint("test_schema", "car", "name", ConstraintType.DEFAULT);
+		pcm.dropOneConstraint("test_schema", "car", "name", ConstraintType.NOT_NULL);
+		pcm.dropOneConstraint("test_schema", "car", "distfk", ConstraintType.FK);
+		pcm.dropOneConstraint("test_schema", "car", "car_check", ConstraintType.CHECK);
+		pcm.dropOneConstraint("test_schema", "car", "car_idx", ConstraintType.INDEX);
+		pcm.dropOneConstraint("test_schema", "car", "car_upper_idx", ConstraintType.INDEX);
+
+		for (int i = 0; i < 100; i++){
+			dao.getJdbcTemplate().execute("insert into test_schema.car (id, name, user_name, user_id," +
+					"value, autointf) VALUES ("+i+", 'Test', 'name', 1, 30, 100)");
+		}
+
+		pcm.restoreOneConstraint("test_schema", "car", "car_upper_idx", ConstraintType.INDEX,true);
+		pcm.restoreOneConstraint("test_schema", "car", "car_idx", ConstraintType.INDEX,true);
+		pcm.restoreOneConstraint("test_schema", "car", "unique_name", ConstraintType.UNIQUE,true);
+		pcm.restoreOneConstraint("test_schema", "car", "car_pkey", ConstraintType.PK,true);
+		pcm.restoreOneConstraint("test_schema", "car", "value", ConstraintType.DEFAULT,true);
+		pcm.restoreOneConstraint("test_schema", "car", "autointf", ConstraintType.NOT_NULL,true);
+		pcm.restoreOneConstraint("test_schema", "car", "name", ConstraintType.DEFAULT,true);
+		pcm.restoreOneConstraint("test_schema", "car", "name", ConstraintType.NOT_NULL,true);
+		pcm.restoreOneConstraint("test_schema", "car", "distfk", ConstraintType.FK,true);
+		pcm.restoreOneConstraint("test_schema", "car", "car_check", ConstraintType.CHECK,true);
+
+
+		pcm.getAndInitAllConstraints("test_schema", "car2");
+		pcm.dropAllConstraintsInTable("test_schema", "car2", true,
+				ConstraintType.CHECK, ConstraintType.DEFAULT, ConstraintType.FK, ConstraintType.PK,
+				ConstraintType.INDEX, ConstraintType.NOT_NULL, ConstraintType.UNIQUE);
+
+
+		pcm.restoreAllConstraintsInTable("test_schema", "car2", true);
 
 
 		Thread.sleep(100);
