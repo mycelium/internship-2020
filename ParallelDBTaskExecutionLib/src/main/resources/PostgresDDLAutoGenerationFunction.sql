@@ -55,7 +55,7 @@ AS
         || '','' || E''\n'';
     END LOOP;
 
-    -- define all the constraints in the; https://www.postgresql.org/docs/9.1/catalog-pg-constraint.html && https://dba.stackexchange.com/a/214877/75296
+    -- define all the constraintUCPFS in the; https://www.postgresql.org/docs/9.1/catalog-pg-constraint.html && https://dba.stackexchange.com/a/214877/75296
     FOR v_constraint_record IN
       SELECT
         con.conname as constraint_name,

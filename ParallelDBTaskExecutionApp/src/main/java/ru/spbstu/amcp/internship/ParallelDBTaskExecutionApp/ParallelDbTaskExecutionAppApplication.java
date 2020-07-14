@@ -3,16 +3,13 @@ package ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Import;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecution.constraintsmanagement.Constraint;
+import ru.spbstu.amcp.internship.ParallelDBTaskExecution.constraintsmanagement.ConstraintType;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecution.constraintsmanagement.PostgresConstraintsManager;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp.dao.UserDaoImpl;
-import ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp.services.UserService;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp.services.UserServiceImpl;
 
-import java.util.Arrays;
 import java.util.List;
 
 @SpringBootApplication
@@ -51,11 +48,28 @@ public class ParallelDbTaskExecutionAppApplication {
 
 
 
-		String ddl = new PostgresConstraintsManager(dao.getJdbcTemplate())
-				.getTableDDL("test_schema", "table_name");
+		PostgresConstraintsManager pcm = new PostgresConstraintsManager(dao.getJdbcTemplate());
+		List<Constraint> constraints = pcm.getAndInitAllConstraints("public", "car");
+		List<Constraint> constraints2 = pcm.getAndInitAllConstraints("test_schema", "table_name");
+		List<Constraint> constraints3 = pcm.getAndInitAllConstraints("public", "fruit");
+		pcm.dropOneConstraint("test_schema", "table_name", "tata", ConstraintType.INDEX);
+		pcm.restoreOneConstraint("test_schema", "table_name", "tata", ConstraintType.INDEX);
+
+		pcm.dropOneConstraint("test_schema", "table_name", "pkk",  ConstraintType.PK);
+		pcm.restoreOneConstraint("test_schema", "table_name", "pkk", ConstraintType.PK);
+
+		pcm.dropOneConstraint("public", "car", "distfk", ConstraintType.FK);
+		pcm.dropOneConstraint("public", "car", "unique_name", ConstraintType.UNIQUE);
+		pcm.dropOneConstraint("public", "fruit", "some_checky", ConstraintType.CHECK);
+		pcm.dropOneConstraint("public", "car", "car_idx", ConstraintType.INDEX);
+		pcm.restoreOneConstraint("public", "car", "unique_name", ConstraintType.UNIQUE);
+		pcm.restoreOneConstraint("public", "car", "distfk", ConstraintType.FK);
+		pcm.restoreOneConstraint("public", "car", "car_idx", ConstraintType.INDEX);
+		pcm.restoreOneConstraint("public", "fruit", "some_checky", ConstraintType.CHECK);
+
 
 		Thread.sleep(100);
-		System.out.println(ddl);
+
 
 
 		System.out.println("DONE MAIN!");
