@@ -1,14 +1,18 @@
 package ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp.dao;
 
+import lombok.Getter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import ru.spbstu.amcp.internship.ParallelDBTaskExecution.constraintsmanagement.PostgresConstraintsManager;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp.model.User;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Repository
 public class UserDaoImpl implements UserDao {
 
+    @Getter
     private JdbcTemplate jdbcTemplate;
 
     public UserDaoImpl(JdbcTemplate jdbcTemplate)
