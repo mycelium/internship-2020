@@ -3,12 +3,15 @@ package ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Import;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.web.bind.annotation.RestController;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecution.concurtx.ConcurTxManager;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecution.concurtx.TxAction;
-import ru.spbstu.amcp.internship.ParallelDBTaskExecution.constraintsmanagement.Constraint;
-import ru.spbstu.amcp.internship.ParallelDBTaskExecution.constraintsmanagement.ConstraintType;
-import ru.spbstu.amcp.internship.ParallelDBTaskExecution.constraintsmanagement.PostgresConstraintsManager;
+import ru.spbstu.amcp.internship.ParallelDBTaskExecution.constraintsmanagement.*;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp.dao.UserDaoImpl;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp.services.UserServiceImpl;
 
@@ -16,65 +19,31 @@ import java.util.List;
 
 @SpringBootApplication
 @RestController
+/**
+ * Чтобы заработал autowire у ConstraintsManager
+ */
+@Import(ConstraintsManagerConfiguration.class)
 public class ParallelDbTaskExecutionAppApplication {
 
 
+	public static void testConstraintsManager(ApplicationContext context, JdbcTemplate jdbcTemplate){
 
-	public static void main(String[] args) throws Exception {
-
-		ApplicationContext context = SpringApplication.run(ParallelDbTaskExecutionAppApplication.class, args);
-		UserServiceImpl userService = context.getBean(UserServiceImpl.class);
-
-		userService.myTx();
-
-		UserDaoImpl dao = context.getBean(UserDaoImpl.class);
-
-//		new PostgresConstraintsManager(dao.getJdbcTemplate())
-//				.dropConstraint("car", "postgresfk");
-
-//		new PostgresConstraintsManager(dao.getJdbcTemplate())
-//				.addPrimaryKey("users", "PostgresPK",
-//						Arrays.asList("id", "name"));
-//
-//		new PostgresConstraintsManager(dao.getJdbcTemplate())
-//				.addForeignKey("car", "PostgresFK",
-//						 Arrays.asList("user_id", "user_name"),
-//						"users2", Arrays.asList("id", "name"));
+		//Сначала дропнем таблицы и заново их инициализируем
+		Resource resource = new ClassPathResource("car.sql");
+		ResourceDatabasePopulator databasePopulator = new ResourceDatabasePopulator(resource);
+		databasePopulator.execute(jdbcTemplate.getDataSource());
 
 
-		System.out.println("---------------------------------");
-		System.out.println(new PostgresConstraintsManager
-				(dao.getJdbcTemplate()).getSchemaPrivileges("test_schema"));
-		System.out.println(new PostgresConstraintsManager
-				(dao.getJdbcTemplate()).getTableOwner("test_schema", "table_name"));
+		//Spring сам определит по драйверу какой ConstraintsManager ему нужен (для Postgres, MariaDB или SqLite)
+		ConstraintsManager pcm = context.getBean(ConstraintsManager.class);
+		//Выведет тип драйвера
+		System.out.println(pcm.driverType());
 
-
-
-		PostgresConstraintsManager pcm = new PostgresConstraintsManager(dao.getJdbcTemplate());
-		List<Constraint> constraints = pcm.getAndInitAllConstraints("public", "car");
-		List<Constraint> constraints2 = pcm.getAndInitAllConstraints("test_schema", "table_name");
-		List<Constraint> constraints3 = pcm.getAndInitAllConstraints("public", "fruit");
-//		pcm.dropOneConstraint("test_schema", "table_name", "tata", ConstraintType.INDEX);
-//		pcm.restoreOneConstraint("test_schema", "table_name", "tata", ConstraintType.INDEX);
-//
-//		pcm.dropOneConstraint("test_schema", "table_name", "pkk",  ConstraintType.PK);
-//		pcm.dropOneConstraint("test_schema", "table_name", "pkk",  ConstraintType.PK);
-//		pcm.restoreOneConstraint("test_schema", "table_name", "pkk", ConstraintType.PK);
-//
-//		pcm.dropOneConstraint("public", "car", "prettyfk", ConstraintType.FK);
-//		pcm.dropOneConstraint("public", "car", "unique_name", ConstraintType.UNIQUE);
-//		pcm.dropOneConstraint("public", "fruit", "some_checky", ConstraintType.CHECK);
-//		pcm.dropOneConstraint("public", "car", "car_idx", ConstraintType.INDEX);
-//		pcm.restoreOneConstraint("public", "car", "unique_name", ConstraintType.UNIQUE);
-//		pcm.restoreOneConstraint("public", "car", "prettyfk", ConstraintType.FK);
-//		pcm.restoreOneConstraint("public", "car", "car_idx", ConstraintType.INDEX);
-//		pcm.restoreOneConstraint("public", "fruit", "some_checky", ConstraintType.CHECK);
-//
-//		pcm.dropOneConstraint("public", "car", "name", ConstraintType.DEFAULT);
-//		pcm.restoreOneConstraint("public", "car", "name", ConstraintType.DEFAULT);
-
-
+		//ConstraintsManager запомнит все constraints для указанной таблицы в схеме
+		//Это делать обязательно перед отключением constraints
 		List<Constraint> cons = pcm.getAndInitAllConstraints("test_schema", "car");
+
+		//Отключаем constraints
 		pcm.dropOneConstraint("test_schema", "car", "unique_name", ConstraintType.UNIQUE);
 		pcm.dropOneConstraint("test_schema", "car", "car_pkey", ConstraintType.PK);
 		pcm.dropOneConstraint("test_schema", "car", "value", ConstraintType.DEFAULT);
@@ -86,11 +55,14 @@ public class ParallelDbTaskExecutionAppApplication {
 		pcm.dropOneConstraint("test_schema", "car", "car_idx", ConstraintType.INDEX);
 		pcm.dropOneConstraint("test_schema", "car", "car_upper_idx", ConstraintType.INDEX);
 
+		//Здесь вставятся данные, не удовлетворяющие constraints
 		for (int i = 0; i < 100; i++){
-			dao.getJdbcTemplate().execute("insert into test_schema.car (id, name, user_name, user_id," +
+			jdbcTemplate.execute("insert into test_schema.car (id, name, user_name, user_id," +
 					"value, autointf) VALUES ("+i+", 'Test', 'name', 1, 30, 100)");
 		}
 
+		//Включаем constraints - некоторые constraints не включатся, так как нарушены условия после вставки, но они (constraints) не удалятся,
+		//пока работает программа
 		pcm.restoreOneConstraint("test_schema", "car", "car_upper_idx", ConstraintType.INDEX,true);
 		pcm.restoreOneConstraint("test_schema", "car", "car_idx", ConstraintType.INDEX,true);
 		pcm.restoreOneConstraint("test_schema", "car", "unique_name", ConstraintType.UNIQUE,true);
@@ -102,19 +74,33 @@ public class ParallelDbTaskExecutionAppApplication {
 		pcm.restoreOneConstraint("test_schema", "car", "distfk", ConstraintType.FK,true);
 		pcm.restoreOneConstraint("test_schema", "car", "car_check", ConstraintType.CHECK,true);
 
+		//Другой вариант удаления/восстановления constraints
 
-		pcm.getAndInitAllConstraints("test_schema", "car2");
-		pcm.dropAllConstraintsInTable("test_schema", "car2", true,
+		databasePopulator.execute(jdbcTemplate.getDataSource());
+
+		pcm.getAndInitAllConstraints("test_schema", "car");
+
+		pcm.dropAllConstraintsInTable("test_schema", "car", true,
 				ConstraintType.CHECK, ConstraintType.DEFAULT, ConstraintType.FK, ConstraintType.PK,
 				ConstraintType.INDEX, ConstraintType.NOT_NULL, ConstraintType.UNIQUE);
 
 
-		pcm.restoreAllConstraintsInTable("test_schema", "car2", true);
+		pcm.restoreAllConstraintsInTable("test_schema", "car", true);
 
+	}
+
+
+	public static void main(String[] args) throws Exception {
+
+		ApplicationContext context = SpringApplication.run(ParallelDbTaskExecutionAppApplication.class, args);
+		UserServiceImpl userService = context.getBean(UserServiceImpl.class);
+
+		userService.myTx();
+		UserDaoImpl dao = context.getBean(UserDaoImpl.class);
+
+		testConstraintsManager(context, dao.getJdbcTemplate());
 
 		Thread.sleep(100);
-
-
 
 		System.out.println("DONE MAIN!");
 

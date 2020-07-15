@@ -1,13 +1,18 @@
 package ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp.config;
 
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnResource;
 import org.springframework.boot.autoconfigure.transaction.TransactionManagerCustomizers;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.transaction.PlatformTransactionManager;
+import ru.spbstu.amcp.internship.ParallelDBTaskExecution.constraintsmanagement.ConstraintsManager;
+import ru.spbstu.amcp.internship.ParallelDBTaskExecution.constraintsmanagement.PostgresConstraintsManager;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecution.extra.PDataSourceTransactionManager;
 
 import javax.sql.DataSource;
@@ -36,7 +41,6 @@ public class DBConfig {
         });
         return transactionManager;
     }
-
 
 
 }

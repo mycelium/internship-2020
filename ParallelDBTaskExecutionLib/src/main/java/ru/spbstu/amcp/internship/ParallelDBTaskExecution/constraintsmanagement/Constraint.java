@@ -4,6 +4,9 @@ package ru.spbstu.amcp.internship.ParallelDBTaskExecution.constraintsmanagement;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * Тип constraint - u - unique, p - PK, f - FK, c - Check, d - default, n - not null, i - индекс
+ */
 public class Constraint {
 
     /**
@@ -33,7 +36,7 @@ public class Constraint {
     @Getter
     private String tableName;
     /**
-     * Код DDL для drop и restore
+     * Код DDL
      */
     @Getter
     private String defDDL = "";
@@ -63,7 +66,7 @@ public class Constraint {
     private String indexName;
 
     /**
-     *  DDL запрос на восстановление constraint
+     * DDL запрос на восстановление constraint
      */
     @Getter
     private String restoreDDL;
@@ -185,6 +188,11 @@ public class Constraint {
         return new Constraint();
     }
 
+    /**
+     * При dropAllConstraints необходимо соблюдать порядок
+     * (например, not null не может быть удален с атрибута, пока есть PK)
+     * @return
+     */
     int determinePriority(){
         switch (contype){
             case ConstraintType.PK:

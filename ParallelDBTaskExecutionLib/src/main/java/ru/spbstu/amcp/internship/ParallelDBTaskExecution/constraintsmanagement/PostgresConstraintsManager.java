@@ -2,23 +2,26 @@ package ru.spbstu.amcp.internship.ParallelDBTaskExecution.constraintsmanagement;
 
 
 import lombok.Getter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 
 import java.io.IOException;
 import java.util.*;
 
-@Repository
-public class PostgresConstraintsManager {
+@Component
+public class PostgresConstraintsManager implements ConstraintsManager {
 
+    @Autowired
     private JdbcTemplate jdbc;
 
-    public PostgresConstraintsManager(JdbcTemplate jdbc) throws IOException {
-        this.jdbc = jdbc;
+    public PostgresConstraintsManager(){
+
     }
 
     /**
-     * Ключ - (имя схемы, имя таблицы), Значение - список constraints
+     * Ключ: (имя схемы, имя таблицы), Значение: список constraints
      */
     @Getter
     Map<List<String>, List<Constraint>> tableConstraints = new HashMap<>();
@@ -92,12 +95,17 @@ public class PostgresConstraintsManager {
                     return null;
                 });
 
-        tableConstraints.putIfAbsent(Arrays.asList(schemaName, tableName), constraints);
+        tableConstraints.remove(Arrays.asList(schemaName, tableName));
+        //Запоминаем constraints для таблицы из схемы
+        tableConstraints.put(Arrays.asList(schemaName, tableName), constraints);
         return constraints;
     }
 
     /**
      * Метод удаляет все constraints заданных видов из таблицы.
+     * При выполнении метода часто будут печататься exceptions, но при правильном
+     * использовании это связано лишь с двойной попыткой дропнуть индексы для PK и FK, что никак
+     * не нарушает правильность работы метода.
      */
     public List<Constraint>  dropAllConstraintsInTable(String schemaName, String tableName, boolean passException, String... ConstraintTypes){
 
@@ -134,8 +142,16 @@ public class PostgresConstraintsManager {
 
     }
 
+    @Override
+    public String driverType() {
+        return "Postgres";
+    }
+
     /**
-     * Метод восстанавливает все constraints для заданной таблицы
+     * Метод восстанавливает все constraints для заданной таблицы.
+     * При выполнении метода часто будут печататься exceptions, но при правильном
+     * использовании это связано лишь с двойной попыткой восстановить индексы для PK и FK, что никак
+     * не нарушает правильность работы метода.
      */
     public void restoreAllConstraintsInTable(String schemaName, String tableName, boolean passException){
 
