@@ -215,5 +215,25 @@ public class Constraint {
         }
     }
 
+    /**
+     * В зависимости от типа constraint будут возвращены разные наименования
+     * @return
+     */
+    public String getConstraintName(){
+        switch (contype){
+            case ConstraintType.UNIQUE:
+            case ConstraintType.CHECK:
+            case ConstraintType.PK:
+            case ConstraintType.FK:
+                return conname;
+            case ConstraintType.DEFAULT:
+            case ConstraintType.NOT_NULL:
+                return attname;
+            case ConstraintType.INDEX:
+                return indexName;
+        }
+        return null;
+    }
+
 
 }

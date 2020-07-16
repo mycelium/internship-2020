@@ -11,17 +11,10 @@ import java.io.IOException;
 import java.util.*;
 
 @Component
-public class PostgresConstraintsManager implements ConstraintsManager {
+public class PostgresConstraintsManager extends ConstraintsManager {
 
     @Autowired
     private JdbcTemplate jdbc;
-
-    /**
-     * Ключ: (имя схемы, имя таблицы), Значение: список constraints
-     */
-    @Getter
-    Map<List<String>, List<Constraint>> tableConstraints = new HashMap<>();
-
 
 
     /**
@@ -97,103 +90,17 @@ public class PostgresConstraintsManager implements ConstraintsManager {
         return constraints;
     }
 
-    /**
-     * Метод удаляет все constraints заданных видов из таблицы.
-     * При выполнении метода часто будут печататься exceptions, но при правильном
-     * использовании это связано лишь с двойной попыткой дропнуть индексы для PK и FK, что никак
-     * не нарушает правильность работы метода.
-     */
-    public List<Constraint>  dropAllConstraintsInTable(String schemaName, String tableName, boolean passException, String... ConstraintTypes){
-
-        for(var e : ConstraintTypes){
-            if(!e.equals(ConstraintType.CHECK) && !e.equals(ConstraintType.UNIQUE)
-                    && !e.equals(ConstraintType.DEFAULT) && !e.equals(ConstraintType.FK)
-                    && !e.equals(ConstraintType.INDEX) && !e.equals(ConstraintType.PK) &&
-                       !e.equals(ConstraintType.NOT_NULL))
-                throw new RuntimeException("Invalid constraint type");
-        }
-
-        List<Constraint> constraints = tableConstraints.get(Arrays.asList(schemaName, tableName));
-        Collections.sort(constraints, Comparator.comparingInt(Constraint::determinePriority));
-
-        List<Constraint> dropped = new ArrayList<>();
-
-
-        for(var c: constraints){
-            if(!c.isDropped() && Arrays.stream(ConstraintTypes).anyMatch(type -> type.equals(c.getContype()))){
-                try{
-                    jdbc.execute(c.getDropDDL());
-                }catch (RuntimeException e){
-                    if(!passException)
-                        throw e;
-
-                    System.out.println(e.getMessage());
-                }
-                c.setDropped(true);
-                dropped.add(c);
-            }
-        }
-
-        return dropped;
-
-    }
 
     @Override
     public String driverType() {
         return "Postgres";
     }
 
-    /**
-     * Метод восстанавливает все constraints для заданной таблицы.
-     * При выполнении метода часто будут печататься exceptions, но при правильном
-     * использовании это связано лишь с двойной попыткой восстановить индексы для PK и FK, что никак
-     * не нарушает правильность работы метода.
-     */
-    public void restoreAllConstraintsInTable(String schemaName, String tableName, boolean passException){
-
-        List<Constraint> constraints = tableConstraints.get(Arrays.asList(schemaName, tableName));
-
-        for(var c: constraints){
-            if(c.isDropped()){
-                try{
-                    jdbc.execute(c.getRestoreDDL());
-                }catch (RuntimeException e){
-                    if(!passException)
-                        throw e;
-                    System.out.println(e.getMessage());
-                }
-                c.setDropped(false);
-            }
-        }
-    }
-
-    /**
-     * Метод восстнавливает один constraint
-     */
-    public Constraint restoreOneConstraint(String schemaName, String tableName, String constraint, String constraintType, boolean passException){
-        if(!passException)
-            return switchOneConstraint(schemaName,  tableName,  constraint,  constraintType, false);
-        else{
-            try{
-                return switchOneConstraint(schemaName,  tableName,  constraint,  constraintType, false);
-            }catch (RuntimeException e){
-                System.out.println(e.getMessage());
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Метод удаляет один constraint из таблицы
-     */
-    public Constraint dropOneConstraint(String schemaName, String tableName, String constraint, String constraintType){
-        return switchOneConstraint(schemaName,  tableName,  constraint,  constraintType, true);
-    }
 
     /**
      * Метод переключает constraint из выключенного во включенное состояние (drop = false) и наоборот (drop = true)
      */
-    private Constraint switchOneConstraint(String schemaName, String tableName, String constraint, String constraintType, boolean drop){
+    Constraint switchOneConstraint(String schemaName, String tableName, String constraint, String constraintType, boolean drop){
 
         if(!constraintType.equals(ConstraintType.CHECK) && !constraintType.equals(ConstraintType.UNIQUE)
          && !constraintType.equals(ConstraintType.DEFAULT) && !constraintType.equals(ConstraintType.FK)

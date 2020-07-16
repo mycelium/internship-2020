@@ -11,16 +11,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
-public class MariaDBConstraintsManager implements ConstraintsManager {
+public class MariaDBConstraintsManager extends ConstraintsManager {
 
     @Autowired
-    private JdbcTemplate jdbc;
+    protected JdbcTemplate jdbc;
 
-    /**
-     * Ключ: (имя схемы, имя таблицы), Значение: список constraints
-     */
-    @Getter
-    Map<List<String>, List<Constraint>> tableConstraints = new HashMap<>();
 
     /**
      * Метод запоминает и возвращает все имеющиеся constraints для заданной таблицы в схеме
@@ -249,34 +244,14 @@ public class MariaDBConstraintsManager implements ConstraintsManager {
         return privs;
     }
 
-    @Override
-    public Constraint dropOneConstraint(String schemaName, String tableName, String constraint, String constraintType) {
-        return switchOneConstraint(schemaName,  tableName,  constraint,  constraintType, true);
-    }
 
-    @Override
-    public Constraint restoreOneConstraint(String schemaName, String tableName, String constraint, String constraintType, boolean passException) {
-        if(!passException)
-            return switchOneConstraint(schemaName,  tableName,  constraint,  constraintType, false);
-        else{
-            try{
-                return switchOneConstraint(schemaName,  tableName,  constraint,  constraintType, false);
-            }catch (RuntimeException e){
-                System.out.println(e.getMessage());
-            }
-        }
-        return null;
-    }
 
     /**
      * Метод переключает constraint из выключенного во включенное состояние (drop = false) и наоборот (drop = true)
      */
-    private Constraint switchOneConstraint(String schemaName, String tableName, String constraint, String constraintType, boolean drop){
+    Constraint switchOneConstraint(String schemaName, String tableName, String constraint, String constraintType, boolean drop){
 
-        if(!constraintType.equals(ConstraintType.CHECK) && !constraintType.equals(ConstraintType.UNIQUE)
-                && !constraintType.equals(ConstraintType.DEFAULT) && !constraintType.equals(ConstraintType.FK)
-                && !constraintType.equals(ConstraintType.INDEX) && !constraintType.equals(ConstraintType.PK) &&
-                !constraintType.equals(ConstraintType.NOT_NULL))
+        if(!ConstraintType.isValidType(constraintType))
             throw new RuntimeException("Invalid constraint type");
 
         List<Constraint> constraints = tableConstraints.get(Arrays.asList(schemaName, tableName));
@@ -401,18 +376,6 @@ public class MariaDBConstraintsManager implements ConstraintsManager {
 
     }
 
-
-
-
-        @Override
-    public void restoreAllConstraintsInTable(String schemaName, String tableName, boolean passException) {
-
-    }
-
-    @Override
-    public List<Constraint> dropAllConstraintsInTable(String schemaName, String tableName, boolean passException, String... ConstraintTypes) {
-        return null;
-    }
 
     @Override
     public String driverType() {

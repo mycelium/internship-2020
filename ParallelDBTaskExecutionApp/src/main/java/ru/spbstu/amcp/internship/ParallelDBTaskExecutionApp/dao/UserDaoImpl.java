@@ -18,19 +18,19 @@ public class UserDaoImpl implements UserDao {
     public UserDaoImpl(JdbcTemplate jdbcTemplate)
     {
         this.jdbcTemplate = jdbcTemplate;
-        jdbcTemplate.update("DROP TABLE IF EXISTS USERS");
-        jdbcTemplate.update("CREATE TABLE USERS(ID INT PRIMARY KEY, NAME VARCHAR(255))");
+        jdbcTemplate.update("DROP TABLE IF EXISTS USERS5");
+        jdbcTemplate.update("CREATE TABLE USERS5(ID INT PRIMARY KEY, NAME VARCHAR(255))");
 
     }
 
     @Override
     public void insert(User user) {
-        jdbcTemplate.update("INSERT INTO USERS (id, name) values (?, ?)", user.getId(), user.getName());
+        jdbcTemplate.update("INSERT INTO USERS5 (id, name) values (?, ?)", user.getId(), user.getName());
     }
 
 
     public void deleteById(int id) {
-        jdbcTemplate.update("DELETE FROM USERS WHERE ID = ?", id);
+        jdbcTemplate.update("DELETE FROM USERS5 WHERE ID = ?", id);
     }
 
     public int count() {
@@ -38,7 +38,7 @@ public class UserDaoImpl implements UserDao {
     }
 
     public User getById(int id) {
-        return jdbcTemplate.queryForObject("SELECT * FROM USERS WHERE ID = ?", new Object[]{id},
+        return jdbcTemplate.queryForObject("SELECT * FROM USERS5 WHERE ID = ?", new Object[]{id},
                 (rs,i) -> new User(rs.getInt("id"), rs.getString("name")));
     }
 
@@ -49,7 +49,7 @@ public class UserDaoImpl implements UserDao {
 
 
     public void changeUserName(int id, String newName) {
-        jdbcTemplate.update("UPDATE USERS SET name=? where id = ?", newName, id);
+        jdbcTemplate.update("UPDATE USERS5 SET name=? where id = ?", newName, id);
     }
 
 }

@@ -32,7 +32,7 @@ public class ParallelDbTaskExecutionAppApplication {
 		ApplicationContext context = SpringApplication.run(ParallelDbTaskExecutionAppApplication.class, args);
 		UserServiceImpl userService = context.getBean(UserServiceImpl.class);
 
-		userService.myTx();
+		//userService.myTx();
 		UserDaoImpl dao = context.getBean(UserDaoImpl.class);
 		JdbcTemplate jdbc = dao.getJdbcTemplate();
 
