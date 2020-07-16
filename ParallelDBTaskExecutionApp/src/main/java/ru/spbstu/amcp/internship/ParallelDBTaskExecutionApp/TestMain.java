@@ -69,9 +69,13 @@ public class TestMain {
 //                System.out.println(line);
 //            }
 
-        String line = "  `val2` int(11) NOT NULL DEFAULT 7 CHECK ((`val1` - `val2`) * 2 > 100)";
+        Pattern p = Pattern.compile("`([^`\\s]*)`");
+        String line = "  `name` varchar(30) NOT NULL DEFAULT '5' CHECK (char_length(`name` > 2)),";
+        Matcher m = p.matcher(line);
+        m.find();
+        System.out.println(m.group(1));
         System.out.println(line
-                .replaceAll("(.*)CHECK \\((.*)\\)", "$1"));
+                .replaceAll("CHECK \\((.*)\\).*", ""));
 
     }
 

@@ -57,6 +57,12 @@ public class ParallelDbTaskExecutionAppApplication {
 		mcm.getAndInitAllConstraints("public", "testt2");
 		mcm.getAndInitAllConstraints("public", "test23");
 		mcm.getAndInitAllConstraints("public", "test5");
+		mcm.getAndInitAllConstraints("public", "t4");
+
+		mcm.dropOneConstraint("public", "t4", "name", ConstraintType.CHECK);
+		mcm.dropOneConstraint("public", "t4", "end_date", ConstraintType.CHECK);
+		mcm.restoreOneConstraint("public", "t4", "name", ConstraintType.CHECK,true);
+		mcm.restoreOneConstraint("public", "t4", "end_date", ConstraintType.CHECK,true);
 
 //		mcm.dropOneConstraint("public", "test5", "val", ConstraintType.CHECK);
 //		mcm.dropOneConstraint("test_schema", "car", "car_check", ConstraintType.CHECK);
@@ -74,6 +80,8 @@ public class ParallelDbTaskExecutionAppApplication {
 		mcm.dropOneConstraint("test_schema", "car", "user_id", ConstraintType.DEFAULT);
 		mcm.dropOneConstraint("public", "testt2", "d2", ConstraintType.DEFAULT);
 		mcm.dropOneConstraint("test_schema", "car", "value", ConstraintType.DEFAULT);
+		mcm.dropOneConstraint("test_schema", "car", "car_check", ConstraintType.CHECK);
+		mcm.restoreOneConstraint("test_schema", "car", "car_check", ConstraintType.CHECK, true);
 		mcm.restoreOneConstraint("test_schema", "car", "value", ConstraintType.DEFAULT, true);
 		mcm.restoreOneConstraint("public", "testt2", "d2", ConstraintType.DEFAULT, true);
 		mcm.restoreOneConstraint("test_schema", "car", "user_id", ConstraintType.DEFAULT, true);

@@ -6,6 +6,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Component
 public class MariaDBConstraintsManager implements ConstraintsManager {
@@ -33,10 +35,15 @@ public class MariaDBConstraintsManager implements ConstraintsManager {
         while(sc.hasNextLine()){
 
             String line = sc.nextLine();
+            if(line.charAt(0) == ')')
+                break;
 
             if(line.contains("NOT NULL")){
 
-                String attName =  line.replaceAll(".*`([^\\s]*)`.*", "$1");
+                Pattern p = Pattern.compile("`([^`\\s]*)`");
+                Matcher m = p.matcher(line);
+                m.find();
+                String attName =  m.group(1);
                 constraints.add(Constraint.buildConstraintNotNull(schemaName, tableName,  attName));
 
             }
@@ -67,7 +74,11 @@ public class MariaDBConstraintsManager implements ConstraintsManager {
 
             if(line.contains("DEFAULT")){
 
-                String attName =  line.replaceAll(".*`([^\\s]*)`.*", "$1");
+                Pattern p = Pattern.compile("`([^`\\s]*)`");
+                Matcher m = p.matcher(line);
+                m.find();
+                String attName =  m.group(1);
+
                 String defaultValue = line.replaceAll(".*DEFAULT ([^\\s]*).*", "$1");
                 if(defaultValue.charAt(0) == '\'')
                     defaultValue = line.replaceAll(".*DEFAULT ('[^']*').*", "$1");
@@ -82,8 +93,12 @@ public class MariaDBConstraintsManager implements ConstraintsManager {
             //Получаю implicit checks
             if(line.contains("CHECK") && !line.contains("CONSTRAINT")){
 
-                String attName =  line.replaceAll(".*`([^\\s]*)`.*", "$1");
-                String ddl = line.replaceAll(".*CHECK \\((.*)\\)", "$1");
+                Pattern p = Pattern.compile("`([^`\\s]*)`");
+                Matcher m = p.matcher(line);
+                m.find();
+                String attName =  m.group(1);
+
+                String ddl = line.replaceAll(".*CHECK \\((.*)\\).*", "$1");
                 constraint = Constraint.buildConstraintUCPF(-1, attName,
                         ConstraintType.CHECK, schemaName,
                         tableName, "CHECK (" + ddl + ")");
@@ -107,7 +122,7 @@ public class MariaDBConstraintsManager implements ConstraintsManager {
                         if(e.getContype() == ConstraintType.CHECK && e.getConname().equals(c.getConname()))
                             return null;
                     }
-
+                    constraints.add(c);
                     return null;
                 });
 
@@ -184,10 +199,28 @@ public class MariaDBConstraintsManager implements ConstraintsManager {
                                 String def = "";
                                 while(sc.hasNextLine()) {
                                     def = sc.nextLine();
-                                    if(def.contains("`"+c.getConname()+"`"))
+                                    Pattern p = Pattern.compile("`([^`\\s]*)`");
+                                    Matcher m = p.matcher(def);
+                                    m.find();
+                                    String attName =  m.group(1);
+                                    if(attName.equals(c.getConname()))
                                         break;
                                 }
 
+                                if(def.charAt(def.length()-1) == ',')
+                                    def = def.substring(0, def.length()-1);
+
+                                //Вставляю или удаляю implicit check
+                                if(drop == false){
+                                    def = def.concat(" " + c.getDefDDL());
+                                }else{
+                                    def = def.replaceAll("CHECK \\((.*)\\).*", "");
+                                }
+
+                                //Выполняю запрос
+                                jdbc.execute("ALTER TABLE "+schemaName+"."+tableName+" MODIFY COLUMN"+def+" ;");
+                                c.setDropped(drop);
+                                return c;
                             }
 
 
