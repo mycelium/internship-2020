@@ -16,10 +16,6 @@ public class PostgresConstraintsManager implements ConstraintsManager {
     @Autowired
     private JdbcTemplate jdbc;
 
-    public PostgresConstraintsManager(){
-
-    }
-
     /**
      * Ключ: (имя схемы, имя таблицы), Значение: список constraints
      */

@@ -69,13 +69,17 @@ public class TestMain {
 //                System.out.println(line);
 //            }
 
-        Pattern p = Pattern.compile("`([^`\\s]*)`");
-        String line = "  `name` varchar(30) NOT NULL DEFAULT '5' CHECK (char_length(`name` > 2)),";
-        Matcher m = p.matcher(line);
-        m.find();
-        System.out.println(m.group(1));
-        System.out.println(line
-                .replaceAll("CHECK \\((.*)\\).*", ""));
+//        Pattern p = Pattern.compile("`([^`\\s]*)`");
+//        String line = "  `name` varchar(30) NOT NULL DEFAULT '5' CHECK (char_length(`name` > 2)),";
+//        Matcher m = p.matcher(line);
+//        m.find();
+//        System.out.println(m.group(1));
+//        System.out.println(line
+//                .replaceAll("CHECK \\((.*)\\).*", ""));
+
+        String line = "GRANT SELECT, EXECUTE, SHOW VIEW ON `test\\_schema`.* TO `test`@`localhost`";
+        String schema = "test_schema";
+        System.out.println(line.replaceFirst("GRANT (.*) ON .*","$1"));
 
     }
 

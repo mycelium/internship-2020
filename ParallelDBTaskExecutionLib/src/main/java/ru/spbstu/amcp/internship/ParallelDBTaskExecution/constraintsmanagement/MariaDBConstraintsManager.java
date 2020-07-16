@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -15,9 +16,18 @@ public class MariaDBConstraintsManager implements ConstraintsManager {
     @Autowired
     private JdbcTemplate jdbc;
 
+    /**
+     * Ключ: (имя схемы, имя таблицы), Значение: список constraints
+     */
     @Getter
     Map<List<String>, List<Constraint>> tableConstraints = new HashMap<>();
 
+    /**
+     * Метод запоминает и возвращает все имеющиеся constraints для заданной таблицы в схеме
+     * @param schemaName
+     * @param tableName
+     * @return
+     */
     @Override
     public List<Constraint> getAndInitAllConstraints(String schemaName, String tableName)
     {
@@ -128,8 +138,7 @@ public class MariaDBConstraintsManager implements ConstraintsManager {
 
         }
 
-        //Получаю check constraints
-
+        //Получаю explicit check constraints
         jdbc.query( "select * from information_schema.CHECK_CONSTRAINTS "+
                         "where constraint_schema = '"+schemaName+"' and table_name = '"+tableName+"';",
                 (rs, i) -> {
@@ -152,14 +161,92 @@ public class MariaDBConstraintsManager implements ConstraintsManager {
         return constraints;
     }
 
-    @Override
-    public String getTableOwner(String schemaName, String tableName) {
-        return null;
+    /**
+     * Privileges
+     * Executing the ALTER TABLE statement generally requires at least the ALTER privilege for the table or the database..
+     *
+     * If you are renaming a table, then it also requires the DROP, CREATE and INSERT privileges for the table or the database as well.
+     *
+     * Метод вернет список прав для текущего пользователя на таблицу.
+     */
+
+    public List<String> getTablePrivilegesForCurrentUser(String schemaName, String tableName) {
+        List<String> privs = new ArrayList<>();
+        AtomicReference<Boolean> done = new AtomicReference<>(false);
+        jdbc.query( "SHOW GRANTS FOR current_user",
+                (rs, i) -> {
+                    if(done.get())
+                        return null;
+                    String grant = rs.getString(1);
+                    if(grant.contains("ON `"+schemaName+"`.`"+tableName+"` ")){
+                        grant = grant.replaceFirst("GRANT (.*) ON .*","$1");
+                        for (var p: grant.split(",")) {
+                            privs.add(p);
+                            done.set(true);
+                        }
+                    }
+                    return null;
+                });
+        return privs;
     }
 
-    @Override
-    public int getSchemaPrivileges(String schemaName) {
-        return 0;
+    /**
+     * Privileges
+     * Executing the ALTER TABLE statement generally requires at least the ALTER privilege for the table or the database..
+     *
+     * If you are renaming a table, then it also requires the DROP, CREATE and INSERT privileges for the table or the database as well.
+     *
+     * Метод вернет список прав для текущего пользователя на схему.
+     *
+     */
+    public List<String> getSchemaPrivilegesForCurrentUser(String schemaName) {
+        List<String> privs = new ArrayList<>();
+        AtomicReference<Boolean> done = new AtomicReference<>(false);
+        jdbc.query( "SHOW GRANTS FOR current_user",
+                (rs, i) -> {
+                    if(done.get())
+                        return null;
+                    String grant = rs.getString(1);
+                    if(grant.contains("ON `"+schemaName+"`.* ") || grant.contains("ON `"+schemaName.replaceAll("_", "\\\\_")+"`.* ")) {
+                        grant = grant.replaceFirst("GRANT (.*) ON .*","$1");
+                        for (var p : grant.split(",")) {
+                            privs.add(p);
+                            done.set(true);
+                        }
+                    }
+                    return null;
+                });
+        return privs;
+    }
+
+
+    /**
+     * Privileges
+     * Executing the ALTER TABLE statement generally requires at least the ALTER privilege for the table or the database..
+     *
+     * If you are renaming a table, then it also requires the DROP, CREATE and INSERT privileges for the table or the database as well.
+     *
+     * Метод вернет список глобальных прав для текущего пользователя
+     *
+     */
+    public List<String> getGlobalPrivilegesForCurrentUser(){
+        List<String> privs = new ArrayList<>();
+        AtomicReference<Boolean> done = new AtomicReference<>(false);
+        jdbc.query( "SHOW GRANTS FOR current_user",
+                (rs, i) -> {
+                    if(done.get())
+                        return null;
+                    String grant = rs.getString(1);
+                    if(grant.contains("ON *.* ")){
+                        grant = grant.replaceFirst("GRANT (.*) ON .*","$1");
+                        for (var p: grant.split(",")) {
+                            privs.add(p);
+                            done.set(true);
+                        }
+                    }
+                    return null;
+                });
+        return privs;
     }
 
     @Override

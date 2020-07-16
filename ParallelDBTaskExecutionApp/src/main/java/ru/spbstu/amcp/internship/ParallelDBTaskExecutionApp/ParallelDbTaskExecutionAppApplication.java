@@ -1,5 +1,6 @@
 package ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
@@ -13,7 +14,9 @@ import ru.spbstu.amcp.internship.ParallelDBTaskExecution.constraintsmanagement.*
 import ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp.dao.UserDaoImpl;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp.services.UserServiceImpl;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 @SpringBootApplication
 @RestController
@@ -24,7 +27,6 @@ import java.util.List;
 public class ParallelDbTaskExecutionAppApplication {
 
 
-
 	public static void main(String[] args) throws Exception {
 
 		ApplicationContext context = SpringApplication.run(ParallelDbTaskExecutionAppApplication.class, args);
@@ -32,9 +34,13 @@ public class ParallelDbTaskExecutionAppApplication {
 
 		userService.myTx();
 		UserDaoImpl dao = context.getBean(UserDaoImpl.class);
+		JdbcTemplate jdbc = dao.getJdbcTemplate();
 
 		//testPostgresConstraintsManager(context, dao.getJdbcTemplate());
 		testMariaDBConstraintsManager(context, dao.getJdbcTemplate());
+
+
+
 
 		Thread.sleep(100);
 
@@ -50,7 +56,12 @@ public class ParallelDbTaskExecutionAppApplication {
 		ResourceDatabasePopulator databasePopulator = new ResourceDatabasePopulator(resource);
 		databasePopulator.execute(jdbcTemplate.getDataSource());
 
-		ConstraintsManager mcm = context.getBean(ConstraintsManager.class);
+		MariaDBConstraintsManager mcm = context.getBean(MariaDBConstraintsManager.class);
+
+		List<String> privc = mcm.getGlobalPrivilegesForCurrentUser();
+		privc = mcm.getTablePrivilegesForCurrentUser("test_schema", "car");
+		privc = mcm.getSchemaPrivilegesForCurrentUser("test_schema");
+
 		List<Constraint> constraints = mcm.getAndInitAllConstraints("test_schema", "car");
 		mcm.getAndInitAllConstraints("public", "users2");
 		mcm.getAndInitAllConstraints("public", "testt");

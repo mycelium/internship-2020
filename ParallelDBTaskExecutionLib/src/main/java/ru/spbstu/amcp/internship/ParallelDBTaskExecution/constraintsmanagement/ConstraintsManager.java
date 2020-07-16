@@ -5,8 +5,6 @@ import java.util.List;
 public interface ConstraintsManager {
 
     List<Constraint> getAndInitAllConstraints(String schemaName, String tableName);
-    String getTableOwner(String schemaName, String tableName);
-    int getSchemaPrivileges(String schemaName);
     Constraint dropOneConstraint(String schemaName, String tableName, String constraint, String constraintType);
     Constraint restoreOneConstraint(String schemaName, String tableName, String constraint, String constraintType, boolean passException);
     void restoreAllConstraintsInTable(String schemaName, String tableName, boolean passException);
