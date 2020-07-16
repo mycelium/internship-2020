@@ -1,5 +1,6 @@
 package ru.spbstu.amcp.internship.ParallelDBTaskExecution;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,6 +22,9 @@ import ru.spbstu.amcp.internship.ParallelDBTaskExecution.constraintsmanagement.M
 import ru.spbstu.amcp.internship.ParallelDBTaskExecution.extra.PDataSourceTransactionManager;
 
 import javax.sql.DataSource;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -32,6 +36,7 @@ public class ConcurTxTest {
     UserServiceImpl service;
     UserDao dao;
     PDataSourceTransactionManager transactionManager;
+    JdbcTemplate jdbcTemplate;
 
     DataSource dataSource(){
         DriverManagerDataSource ds = new DriverManagerDataSource();
@@ -46,12 +51,28 @@ public class ConcurTxTest {
     public void init(){
         DataSource dataSource = dataSource();
         transactionManager = new PDataSourceTransactionManager(dataSource);
+        jdbcTemplate = new JdbcTemplate(dataSource);
         dao = new UserDaoImpl(new JdbcTemplate(dataSource));
         service = new UserServiceImpl(dao, transactionManager);
     }
 
+    //Запись будет идти в таблицу Users5 в схеме public
     @Test
     public void myTx(){
+
+        //Ожидаемый результат
+        List<User> expectedResult = Arrays.asList(
+                new User(5, "Begin of innerAction"),
+                new User(6, "Next action in inner"),
+                new User(7, "Next action in inner"),
+                new User(8, "Next action in innerAsync"),
+                new User(9, "Next action in innerAsync"),
+                new User(10, "Next action in innerAsync"),
+                new User(55, "Next action"),
+                new User(100,"New Transaction"),
+                new User(101, "New transaction - Parent Action"),
+                new User(200, "First Tx")
+        );
 
         //Создаю менеджер параллелльной транзакции
         ConcurTxManager ctxm = new ConcurTxManager(service.getTransactionTemplate());
@@ -251,6 +272,21 @@ public class ConcurTxTest {
         }catch (RuntimeException e){
             System.out.println("expected exception");
         }
+
+        List<User> obtainedResult = jdbcTemplate.query("select * from users5",
+                (rs, i)->{
+                    return new User(rs.getInt("id"), rs.getString("name"));
+                });
+
+        Assert.assertTrue(obtainedResult.size() == expectedResult.size());
+
+        for(int i = 0; i < obtainedResult.size(); i++){
+
+            Assert.assertTrue(obtainedResult.get(i).getId() == expectedResult.get(i).getId());
+            Assert.assertTrue(obtainedResult.get(i).getName().equals(expectedResult.get(i).getName()));
+
+        }
+
 
     }
 
