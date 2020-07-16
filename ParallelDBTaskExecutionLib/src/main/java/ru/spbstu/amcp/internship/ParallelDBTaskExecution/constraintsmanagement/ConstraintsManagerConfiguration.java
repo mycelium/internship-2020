@@ -13,9 +13,15 @@ import java.io.IOException;
 public class ConstraintsManagerConfiguration {
 
     @Bean
-    @ConditionalOnClass(org.postgresql.Driver.class)
-    public ConstraintsManager constraintsManager() {
+    @ConditionalOnClass(name = "org.postgresql.Driver")
+    public PostgresConstraintsManager postgresConstraintsManager() {
         return new PostgresConstraintsManager();
+    }
+
+    @Bean
+    @ConditionalOnClass(name = "org.mariadb.jdbc.Driver")
+    public MariaDBConstraintsManager mariaDBConstraintsManager() {
+        return new MariaDBConstraintsManager();
     }
 
 }

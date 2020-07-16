@@ -69,12 +69,14 @@ public class Constraint {
      * DDL запрос на восстановление constraint
      */
     @Getter
+    @Setter
     private String restoreDDL;
 
     /**
      * DDL запрос на удаление constraint
      */
     @Getter
+    @Setter
     private String dropDDL;
 
     /**
@@ -90,6 +92,7 @@ public class Constraint {
                                     String tableName, String ddl){
         Constraint ucpfc = new Constraint(oid, conname, contype, schemaName, tableName, ddl);
 
+        //Default values for Postgres
         ucpfc.dropDDL = "ALTER TABLE "+ schemaName + "." + tableName + " DROP CONSTRAINT "+ conname +" ;";
         ucpfc.restoreDDL = "ALTER TABLE " + schemaName + "." + tableName + " ADD CONSTRAINT " +  conname +
                  " " + ddl + " ;";
@@ -104,6 +107,7 @@ public class Constraint {
                                                     String tableName, String attname){
         Constraint nnc =  new Constraint(schemaName, tableName, attname);
 
+        //Default values for Postgres
         nnc.dropDDL = "ALTER TABLE "+schemaName+"."+tableName+" ALTER COLUMN "+attname+" DROP NOT NULL";
         nnc.restoreDDL = "ALTER TABLE "+schemaName+"."+tableName+" ALTER COLUMN "+attname+" SET NOT NULL";
         return nnc;
@@ -120,6 +124,9 @@ public class Constraint {
         Constraint dc = new Constraint(schemaName,
                 tableName, attname,
                 defValueType, defValue);
+
+
+        //Default values for Postgres
         dc.dropDDL = "ALTER TABLE "+schemaName+"."+tableName+" ALTER COLUMN "+attname+" DROP DEFAULT;";
         dc.restoreDDL = "ALTER TABLE "+schemaName+"."+tableName+" ALTER COLUMN "+attname+" SET DEFAULT " +
                 ""+defValue+" ;";
@@ -133,6 +140,8 @@ public class Constraint {
     public static Constraint buildConstraintIndex(String schemaName, String tableName, String indexName, String indexDef){
         Constraint ic = new Constraint(schemaName, tableName, indexName, indexDef);
 
+
+        //Default values for Postgres
         ic.restoreDDL = ic.defDDL;
         ic.dropDDL = "DROP INDEX " + schemaName + "." + indexName + " ;";
         return ic;

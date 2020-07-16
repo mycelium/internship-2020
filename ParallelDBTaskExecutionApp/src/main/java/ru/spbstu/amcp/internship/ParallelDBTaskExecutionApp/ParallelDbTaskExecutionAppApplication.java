@@ -9,8 +9,6 @@ import org.springframework.core.io.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.web.bind.annotation.RestController;
-import ru.spbstu.amcp.internship.ParallelDBTaskExecution.concurtx.ConcurTxManager;
-import ru.spbstu.amcp.internship.ParallelDBTaskExecution.concurtx.TxAction;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecution.constraintsmanagement.*;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp.dao.UserDaoImpl;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecutionApp.services.UserServiceImpl;
@@ -26,10 +24,74 @@ import java.util.List;
 public class ParallelDbTaskExecutionAppApplication {
 
 
-	public static void testConstraintsManager(ApplicationContext context, JdbcTemplate jdbcTemplate){
+
+	public static void main(String[] args) throws Exception {
+
+		ApplicationContext context = SpringApplication.run(ParallelDbTaskExecutionAppApplication.class, args);
+		UserServiceImpl userService = context.getBean(UserServiceImpl.class);
+
+		userService.myTx();
+		UserDaoImpl dao = context.getBean(UserDaoImpl.class);
+
+		//testPostgresConstraintsManager(context, dao.getJdbcTemplate());
+		testMariaDBConstraintsManager(context, dao.getJdbcTemplate());
+
+		Thread.sleep(100);
+
+		System.out.println("DONE MAIN!");
+
+
+	}
+
+	public static void testMariaDBConstraintsManager(ApplicationContext context, JdbcTemplate jdbcTemplate){
 
 		//Сначала дропнем таблицы и заново их инициализируем
-		Resource resource = new ClassPathResource("car.sql");
+		Resource resource = new ClassPathResource("mariadbcar.sql");
+		ResourceDatabasePopulator databasePopulator = new ResourceDatabasePopulator(resource);
+		databasePopulator.execute(jdbcTemplate.getDataSource());
+
+		ConstraintsManager mcm = context.getBean(ConstraintsManager.class);
+		List<Constraint> constraints = mcm.getAndInitAllConstraints("test_schema", "car");
+		mcm.getAndInitAllConstraints("public", "users2");
+		mcm.getAndInitAllConstraints("public", "testt");
+		mcm.getAndInitAllConstraints("public", "testt2");
+		mcm.getAndInitAllConstraints("public", "test23");
+		mcm.getAndInitAllConstraints("public", "test5");
+
+//		mcm.dropOneConstraint("public", "test5", "val", ConstraintType.CHECK);
+//		mcm.dropOneConstraint("test_schema", "car", "car_check", ConstraintType.CHECK);
+//		mcm.restoreOneConstraint("test_schema", "car", "car_check", ConstraintType.CHECK, true);
+//		mcm.restoreOneConstraint("public", "test5", "val", ConstraintType.CHECK, true);
+
+		mcm.dropOneConstraint("public","test23","i", ConstraintType.NOT_NULL);
+		mcm.restoreOneConstraint("public","test23","i", ConstraintType.NOT_NULL,true);
+
+		mcm.dropOneConstraint("test_schema", "car", "autoinccol", ConstraintType.NOT_NULL);
+		mcm.dropOneConstraint("test_schema", "car", "primary", ConstraintType.PK);
+		mcm.dropOneConstraint("public", "users2", "primary", ConstraintType.PK);
+		mcm.dropOneConstraint("test_schema", "car", "distfk", ConstraintType.FK);
+		mcm.dropOneConstraint("test_schema", "car", "name", ConstraintType.DEFAULT);
+		mcm.dropOneConstraint("test_schema", "car", "user_id", ConstraintType.DEFAULT);
+		mcm.dropOneConstraint("public", "testt2", "d2", ConstraintType.DEFAULT);
+		mcm.dropOneConstraint("test_schema", "car", "value", ConstraintType.DEFAULT);
+		mcm.restoreOneConstraint("test_schema", "car", "value", ConstraintType.DEFAULT, true);
+		mcm.restoreOneConstraint("public", "testt2", "d2", ConstraintType.DEFAULT, true);
+		mcm.restoreOneConstraint("test_schema", "car", "user_id", ConstraintType.DEFAULT, true);
+		mcm.restoreOneConstraint("test_schema", "car", "name", ConstraintType.DEFAULT, true);
+		mcm.restoreOneConstraint("test_schema", "car", "distfk", ConstraintType.FK, true);
+		mcm.restoreOneConstraint("public", "users2", "primary", ConstraintType.PK, true);
+		mcm.restoreOneConstraint("test_schema", "car", "primary", ConstraintType.PK, true);
+		mcm.restoreOneConstraint("test_schema", "car", "autoinccol", ConstraintType.NOT_NULL, true);
+
+
+		System.out.println("DONE!");
+
+	}
+
+	public static void testPostgresConstraintsManager(ApplicationContext context, JdbcTemplate jdbcTemplate){
+
+		//Сначала дропнем таблицы и заново их инициализируем
+		Resource resource = new ClassPathResource("postgrescar.sql");
 		ResourceDatabasePopulator databasePopulator = new ResourceDatabasePopulator(resource);
 		databasePopulator.execute(jdbcTemplate.getDataSource());
 
@@ -86,24 +148,6 @@ public class ParallelDbTaskExecutionAppApplication {
 
 
 		pcm.restoreAllConstraintsInTable("test_schema", "car", true);
-
-	}
-
-
-	public static void main(String[] args) throws Exception {
-
-		ApplicationContext context = SpringApplication.run(ParallelDbTaskExecutionAppApplication.class, args);
-		UserServiceImpl userService = context.getBean(UserServiceImpl.class);
-
-		userService.myTx();
-		UserDaoImpl dao = context.getBean(UserDaoImpl.class);
-
-		testConstraintsManager(context, dao.getJdbcTemplate());
-
-		Thread.sleep(100);
-
-		System.out.println("DONE MAIN!");
-
 
 	}
 

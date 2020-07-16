@@ -21,12 +21,22 @@ import javax.sql.DataSource;
 @PropertySource("classpath:application.yml")
 public class DBConfig {
 
+//    @Bean
+//    public DataSource dataSource(){
+//        DriverManagerDataSource ds = new DriverManagerDataSource();
+//        ds.setDriverClassName("org.postgresql.Driver");
+//        ds.setUrl("jdbc:postgresql://127.0.0.1:5432/TestDB");
+//        ds.setUsername("postgres");
+//        ds.setPassword("root");
+//        return ds;
+//    }
+
     @Bean
     public DataSource dataSource(){
         DriverManagerDataSource ds = new DriverManagerDataSource();
-        ds.setDriverClassName("org.postgresql.Driver");
-        ds.setUrl("jdbc:postgresql://127.0.0.1:5432/TestDB");
-        ds.setUsername("postgres");
+        ds.setDriverClassName("org.mariadb.jdbc.Driver");
+        ds.setUrl("jdbc:mariadb://localhost:3307/test_schema");
+        ds.setUsername("root");
         ds.setPassword("root");
         return ds;
     }
