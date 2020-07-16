@@ -106,6 +106,26 @@ public class MariaDBConstraintsManager implements ConstraintsManager {
 
             }
 
+            //Получаю Unique
+            if((line.contains("KEY") && !line.contains("PRIMARY") && !line.contains("FOREIGN"))){
+
+                Pattern p = Pattern.compile("`([^`\\s]*)`");
+                Matcher m = p.matcher(line);
+                m.find();
+                String indexName =  m.group(1);
+                String ddl = line;
+                if(ddl.charAt(ddl.length()-1) == ',')
+                    ddl = ddl.substring(0, ddl.length()-1);
+                if(line.contains("UNIQUE KEY"))
+                    constraint = Constraint.buildConstraintUCPF(0, indexName, ConstraintType.UNIQUE,schemaName,tableName, ddl);
+                else
+                    constraint = Constraint.buildConstraintIndex(schemaName,tableName,indexName,ddl);
+                constraint.setDropDDL("ALTER TABLE "+schemaName+"."+tableName+" DROP KEY " + indexName + " ;");
+                constraint.setRestoreDDL("ALTER TABLE "+schemaName+"."+tableName+" ADD " + ddl + " ;");
+                constraints.add(constraint);
+
+            }
+
         }
 
         //Получаю check constraints

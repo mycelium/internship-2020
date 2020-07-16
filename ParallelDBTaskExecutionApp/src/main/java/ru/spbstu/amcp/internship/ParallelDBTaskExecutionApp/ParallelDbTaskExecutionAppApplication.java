@@ -74,20 +74,22 @@ public class ParallelDbTaskExecutionAppApplication {
 
 		mcm.dropOneConstraint("test_schema", "car", "autoinccol", ConstraintType.NOT_NULL);
 		mcm.dropOneConstraint("test_schema", "car", "primary", ConstraintType.PK);
-		mcm.dropOneConstraint("public", "users2", "primary", ConstraintType.PK);
 		mcm.dropOneConstraint("test_schema", "car", "distfk", ConstraintType.FK);
 		mcm.dropOneConstraint("test_schema", "car", "name", ConstraintType.DEFAULT);
 		mcm.dropOneConstraint("test_schema", "car", "user_id", ConstraintType.DEFAULT);
-		mcm.dropOneConstraint("public", "testt2", "d2", ConstraintType.DEFAULT);
 		mcm.dropOneConstraint("test_schema", "car", "value", ConstraintType.DEFAULT);
 		mcm.dropOneConstraint("test_schema", "car", "car_check", ConstraintType.CHECK);
+		mcm.dropOneConstraint("test_schema", "car", "unique_name", ConstraintType.UNIQUE);
+		mcm.dropOneConstraint("test_schema", "car", "car_idx", ConstraintType.UNIQUE);
+		mcm.dropOneConstraint("test_schema", "car", "car_upper_idx", ConstraintType.INDEX);
+		mcm.restoreOneConstraint("test_schema", "car", "car_upper_idx", ConstraintType.INDEX, true);
+		mcm.restoreOneConstraint("test_schema", "car", "car_idx", ConstraintType.UNIQUE, true);
+		mcm.restoreOneConstraint("test_schema", "car", "unique_name", ConstraintType.UNIQUE, true);
 		mcm.restoreOneConstraint("test_schema", "car", "car_check", ConstraintType.CHECK, true);
 		mcm.restoreOneConstraint("test_schema", "car", "value", ConstraintType.DEFAULT, true);
-		mcm.restoreOneConstraint("public", "testt2", "d2", ConstraintType.DEFAULT, true);
 		mcm.restoreOneConstraint("test_schema", "car", "user_id", ConstraintType.DEFAULT, true);
 		mcm.restoreOneConstraint("test_schema", "car", "name", ConstraintType.DEFAULT, true);
 		mcm.restoreOneConstraint("test_schema", "car", "distfk", ConstraintType.FK, true);
-		mcm.restoreOneConstraint("public", "users2", "primary", ConstraintType.PK, true);
 		mcm.restoreOneConstraint("test_schema", "car", "primary", ConstraintType.PK, true);
 		mcm.restoreOneConstraint("test_schema", "car", "autoinccol", ConstraintType.NOT_NULL, true);
 

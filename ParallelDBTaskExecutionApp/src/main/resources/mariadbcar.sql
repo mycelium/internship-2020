@@ -29,7 +29,7 @@ CREATE TABLE test_schema.car (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 ALTER TABLE test_schema.car
-    ADD CONSTRAINT unique_name  UNIQUE (name);
+    ADD CONSTRAINT unique_name  UNIQUE (name, value);
 ALTER TABLE test_schema.car
     ADD PRIMARY KEY (id);
 
