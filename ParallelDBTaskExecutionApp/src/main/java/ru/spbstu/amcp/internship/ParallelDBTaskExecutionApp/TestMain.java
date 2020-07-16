@@ -77,9 +77,9 @@ public class TestMain {
 //        System.out.println(line
 //                .replaceAll("CHECK \\((.*)\\).*", ""));
 
-        String line = "GRANT SELECT, EXECUTE, SHOW VIEW ON `test\\_schema`.* TO `test`@`localhost`";
-        String schema = "test_schema";
-        System.out.println(line.replaceFirst("GRANT (.*) ON .*","$1"));
+        String line = "  `no` int(11) NOT NULL AUTO_INCREMENT";
+
+        System.out.println(line.replace("AUTO_INCREMENT", ""));
 
     }
 

@@ -16,6 +16,7 @@ public class MariaDBConstraintsManager extends ConstraintsManager {
     @Autowired
     protected JdbcTemplate jdbc;
 
+    public static boolean REMOVE_AUTO_INCREMENT_BEFORE_PK = false;
 
     /**
      * Метод запоминает и возвращает все имеющиеся constraints для заданной таблицы в схеме
@@ -270,6 +271,31 @@ public class MariaDBConstraintsManager extends ConstraintsManager {
                                 c.getContype().equals(ConstraintType.FK)||c.getContype().equals(ConstraintType.PK))
                                 && c.getConname().equals(constraint)){
 
+                            //Удаление AUTO_INCREMENT (т.к. в MariaDB AUTO_INCREMENT без PK быть не может) (только если удаляется PK)
+                            if(c.getContype().equals(ConstraintType.PK) && REMOVE_AUTO_INCREMENT_BEFORE_PK && drop){
+
+                                String tableDDL = jdbc.queryForObject("SHOW CREATE TABLE "+schemaName+"."+tableName+";",
+                                        (rs,i)->rs.getString(2));
+                                Scanner sc = new Scanner(tableDDL);
+
+                                String def = "";
+                                Boolean hasAutoincrement = false;
+                                while(sc.hasNextLine()) {
+                                    def = sc.nextLine();
+                                    if(def.contains("AUTO_INCREMENT")) {
+                                        hasAutoincrement = true;
+                                        break;
+                                    }
+                                }
+                                if(hasAutoincrement) {
+                                    if (def.charAt(def.length() - 1) == ',')
+                                        def = def.substring(0, def.length() - 1);
+                                    def = def.replace("AUTO_INCREMENT", "");
+
+                                    jdbc.execute("ALTER TABLE " + schemaName + "." + tableName + " MODIFY COLUMN " + def + " ;");
+                                }
+                            }
+
                             //Исключительная обработка для implicit checks
                             if(c.getOid() == -1 && c.getContype().equals(ConstraintType.CHECK)){
 
@@ -300,7 +326,7 @@ public class MariaDBConstraintsManager extends ConstraintsManager {
                                 }
 
                                 //Выполняю запрос
-                                jdbc.execute("ALTER TABLE "+schemaName+"."+tableName+" MODIFY COLUMN"+def+" ;");
+                                jdbc.execute("ALTER TABLE "+schemaName+"."+tableName+" MODIFY COLUMN "+def+" ;");
                                 c.setDropped(drop);
                                 return c;
                             }

@@ -58,6 +58,14 @@ public class ParallelDbTaskExecutionAppApplication {
 
 		MariaDBConstraintsManager mcm = context.getBean(MariaDBConstraintsManager.class);
 
+		MariaDBConstraintsManager.REMOVE_AUTO_INCREMENT_BEFORE_PK = true;
+		mcm.getAndInitAllConstraints("public","product_order");
+		mcm.dropAllConstraintsInTable("public","product_order", true,
+				ConstraintType.CHECK, ConstraintType.DEFAULT, ConstraintType.FK, ConstraintType.PK,
+				ConstraintType.INDEX, ConstraintType.NOT_NULL, ConstraintType.UNIQUE);
+
+		mcm.restoreAllConstraintsInTable("public","product_order", true);
+
 		List<String> privc = mcm.getGlobalPrivilegesForCurrentUser();
 		privc = mcm.getTablePrivilegesForCurrentUser("test_schema", "car");
 		privc = mcm.getSchemaPrivilegesForCurrentUser("test_schema");
@@ -104,6 +112,15 @@ public class ParallelDbTaskExecutionAppApplication {
 		mcm.restoreOneConstraint("test_schema", "car", "primary", ConstraintType.PK, true);
 		mcm.restoreOneConstraint("test_schema", "car", "autoinccol", ConstraintType.NOT_NULL, true);
 
+
+		databasePopulator.execute(jdbcTemplate.getDataSource());
+		mcm.getAndInitAllConstraints("test_schema", "car");
+
+		mcm.dropAllConstraintsInTable("test_schema", "car", true,
+				ConstraintType.CHECK, ConstraintType.DEFAULT, ConstraintType.FK, ConstraintType.PK,
+				ConstraintType.INDEX, ConstraintType.NOT_NULL, ConstraintType.UNIQUE);
+
+		mcm.restoreAllConstraintsInTable("test_schema", "car", true);
 
 		System.out.println("DONE!");
 
