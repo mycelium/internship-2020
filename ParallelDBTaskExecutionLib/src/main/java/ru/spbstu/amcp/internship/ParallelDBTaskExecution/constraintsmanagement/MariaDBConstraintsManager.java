@@ -18,6 +18,13 @@ public class MariaDBConstraintsManager extends ConstraintsManager {
 
     public static boolean REMOVE_AUTO_INCREMENT_BEFORE_PK = false;
 
+    public MariaDBConstraintsManager(JdbcTemplate jdbc){
+        this.jdbc = jdbc;
+    }
+
+    public MariaDBConstraintsManager(){
+    }
+
     /**
      * Метод запоминает и возвращает все имеющиеся constraints для заданной таблицы в схеме
      * @param schemaName

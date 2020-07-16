@@ -71,25 +71,25 @@ public class ParallelDbTaskExecutionAppApplication {
 		privc = mcm.getSchemaPrivilegesForCurrentUser("test_schema");
 
 		List<Constraint> constraints = mcm.getAndInitAllConstraints("test_schema", "car");
-		mcm.getAndInitAllConstraints("public", "users2");
-		mcm.getAndInitAllConstraints("public", "testt");
-		mcm.getAndInitAllConstraints("public", "testt2");
-		mcm.getAndInitAllConstraints("public", "test23");
-		mcm.getAndInitAllConstraints("public", "test5");
-		mcm.getAndInitAllConstraints("public", "t4");
-
-		mcm.dropOneConstraint("public", "t4", "name", ConstraintType.CHECK);
-		mcm.dropOneConstraint("public", "t4", "end_date", ConstraintType.CHECK);
-		mcm.restoreOneConstraint("public", "t4", "name", ConstraintType.CHECK,true);
-		mcm.restoreOneConstraint("public", "t4", "end_date", ConstraintType.CHECK,true);
+//		mcm.getAndInitAllConstraints("public", "users2");
+//		mcm.getAndInitAllConstraints("public", "testt");
+//		mcm.getAndInitAllConstraints("public", "testt2");
+//		mcm.getAndInitAllConstraints("public", "test23");
+//		mcm.getAndInitAllConstraints("public", "test5");
+//		mcm.getAndInitAllConstraints("public", "t4");
+//
+//		mcm.dropOneConstraint("public", "t4", "name", ConstraintType.CHECK);
+//		mcm.dropOneConstraint("public", "t4", "end_date", ConstraintType.CHECK);
+//		mcm.restoreOneConstraint("public", "t4", "name", ConstraintType.CHECK,true);
+//		mcm.restoreOneConstraint("public", "t4", "end_date", ConstraintType.CHECK,true);
 
 //		mcm.dropOneConstraint("public", "test5", "val", ConstraintType.CHECK);
 //		mcm.dropOneConstraint("test_schema", "car", "car_check", ConstraintType.CHECK);
 //		mcm.restoreOneConstraint("test_schema", "car", "car_check", ConstraintType.CHECK, true);
 //		mcm.restoreOneConstraint("public", "test5", "val", ConstraintType.CHECK, true);
 
-		mcm.dropOneConstraint("public","test23","i", ConstraintType.NOT_NULL);
-		mcm.restoreOneConstraint("public","test23","i", ConstraintType.NOT_NULL,true);
+//		mcm.dropOneConstraint("public","test23","i", ConstraintType.NOT_NULL);
+//		mcm.restoreOneConstraint("public","test23","i", ConstraintType.NOT_NULL,true);
 
 		mcm.dropOneConstraint("test_schema", "car", "autoinccol", ConstraintType.NOT_NULL);
 		mcm.dropOneConstraint("test_schema", "car", "primary", ConstraintType.PK);
