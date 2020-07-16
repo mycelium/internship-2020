@@ -16,6 +16,13 @@ public class PostgresConstraintsManager extends ConstraintsManager {
     @Autowired
     private JdbcTemplate jdbc;
 
+    public PostgresConstraintsManager(JdbcTemplate jdbc){
+        this.jdbc = jdbc;
+    }
+
+    public PostgresConstraintsManager(){
+
+    }
 
     /**
      * Метод запоминает и возвращает все имеющиеся constraints для заданной таблицы в схеме

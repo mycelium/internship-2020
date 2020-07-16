@@ -36,8 +36,8 @@ public class ParallelDbTaskExecutionAppApplication {
 		UserDaoImpl dao = context.getBean(UserDaoImpl.class);
 		JdbcTemplate jdbc = dao.getJdbcTemplate();
 
-		//testPostgresConstraintsManager(context, dao.getJdbcTemplate());
-		testMariaDBConstraintsManager(context, dao.getJdbcTemplate());
+		testPostgresConstraintsManager(context, dao.getJdbcTemplate());
+		//testMariaDBConstraintsManager(context, dao.getJdbcTemplate());
 
 
 
