@@ -24,4 +24,10 @@ public class ConstraintsManagerConfiguration {
         return new MariaDBConstraintsManager();
     }
 
+    @Bean
+    @ConditionalOnClass(name = "org.sqlite.JDBC")
+    public SQLiteConstraintsManager SQLiteConstraintsManager() {
+        return new SQLiteConstraintsManager();
+    }
+
 }

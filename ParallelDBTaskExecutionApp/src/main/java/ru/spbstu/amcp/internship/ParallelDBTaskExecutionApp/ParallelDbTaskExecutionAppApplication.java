@@ -36,17 +36,29 @@ public class ParallelDbTaskExecutionAppApplication {
 		UserDaoImpl dao = context.getBean(UserDaoImpl.class);
 		JdbcTemplate jdbc = dao.getJdbcTemplate();
 
-		testPostgresConstraintsManager(context, dao.getJdbcTemplate());
+		//testPostgresConstraintsManager(context, dao.getJdbcTemplate());
 		//testMariaDBConstraintsManager(context, dao.getJdbcTemplate());
 
+		jdbc.execute("attach database '' as myschema;");
+		jdbc.execute("DROP TABLE IF EXISTS main.car;");
+		jdbc.execute("CREATE TABLE IF NOT EXISTS main.car (\n" +
+				"\tcontact_id INTEGER PRIMARY KEY,\n" +
+				"\tfirst_name TEXT NOT NULL,\n" +
+				"\tlast_name TEXT NOT NULL,\n" +
+				"\temail TEXT NOT NULL UNIQUE,\n" +
+				"\tphone TEXT NOT NULL UNIQUE\n" +
+				");");
+
+		jdbc.execute("INSERT INTO main.car (contact_id, first_name, last_name, email," +
+				"phone) Values (123, '123', '123', '123', '123')");
 
 
+		ConstraintsManager s = context.getBean(ConstraintsManager.class);
+		System.out.println(s.driverType());
 
 		Thread.sleep(100);
 
 		System.out.println("DONE MAIN!");
-
-
 	}
 
 	public static void testMariaDBConstraintsManager(ApplicationContext context, JdbcTemplate jdbcTemplate){

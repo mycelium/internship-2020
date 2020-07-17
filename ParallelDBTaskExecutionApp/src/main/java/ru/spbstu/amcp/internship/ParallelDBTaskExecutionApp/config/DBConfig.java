@@ -9,8 +9,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.sqlite.SQLiteDataSource;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecution.constraintsmanagement.ConstraintsManager;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecution.constraintsmanagement.PostgresConstraintsManager;
 import ru.spbstu.amcp.internship.ParallelDBTaskExecution.extra.PDataSourceTransactionManager;
@@ -21,15 +23,24 @@ import javax.sql.DataSource;
 @PropertySource("classpath:application.yml")
 public class DBConfig {
 
+//    @Bean
+//    public DataSource dataSource(){
+//        DriverManagerDataSource ds = new DriverManagerDataSource();
+//        ds.setDriverClassName("org.postgresql.Driver");
+//        ds.setUrl("jdbc:postgresql://127.0.0.1:5432/TestDB");
+//        ds.setUsername("postgres");
+//        ds.setPassword("root");
+//        return ds;
+//    }
+
     @Bean
     public DataSource dataSource(){
-        DriverManagerDataSource ds = new DriverManagerDataSource();
-        ds.setDriverClassName("org.postgresql.Driver");
-        ds.setUrl("jdbc:postgresql://127.0.0.1:5432/TestDB");
-        ds.setUsername("postgres");
-        ds.setPassword("root");
+        SQLiteDataSource ds = new SQLiteDataSource();
+        ds.setUrl("jdbc:sqlite:ParallelDBTaskExecutionLib\\src\\main\\resources\\sql.db");
+        JdbcTemplate jdbc = new JdbcTemplate(ds);
         return ds;
     }
+
 //
 //    @Bean
 //    public DataSource dataSource(){
