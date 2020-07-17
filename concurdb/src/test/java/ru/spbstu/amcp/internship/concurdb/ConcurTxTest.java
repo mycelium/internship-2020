@@ -5,6 +5,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -15,7 +16,6 @@ import ru.spbstu.amcp.internship.concurdb.ConcurTxTesting.services.UserServiceIm
 import ru.spbstu.amcp.internship.concurdb.concurtx.ConcurTxManager;
 import ru.spbstu.amcp.internship.concurdb.concurtx.TransactionRollbackPolicy;
 import ru.spbstu.amcp.internship.concurdb.concurtx.TxAction;
-import ru.spbstu.amcp.internship.concurdb.extra.PDataSourceTransactionManager;
 
 import javax.sql.DataSource;
 import java.util.Arrays;
@@ -30,7 +30,7 @@ public class ConcurTxTest {
 
     UserServiceImpl service;
     UserDao dao;
-    PDataSourceTransactionManager transactionManager;
+    DataSourceTransactionManager transactionManager;
     JdbcTemplate jdbcTemplate;
 
     DataSource dataSource(){
@@ -45,7 +45,7 @@ public class ConcurTxTest {
     @Before
     public void init(){
         DataSource dataSource = dataSource();
-        transactionManager = new PDataSourceTransactionManager(dataSource);
+        transactionManager = new DataSourceTransactionManager(dataSource);
         jdbcTemplate = new JdbcTemplate(dataSource);
         dao = new UserDaoImpl(new JdbcTemplate(dataSource));
         service = new UserServiceImpl(dao, transactionManager);

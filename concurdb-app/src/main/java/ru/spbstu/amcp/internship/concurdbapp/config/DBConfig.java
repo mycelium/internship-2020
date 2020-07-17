@@ -7,9 +7,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.sqlite.SQLiteDataSource;
-import ru.spbstu.amcp.internship.concurdb.extra.PDataSourceTransactionManager;
 
 import javax.sql.DataSource;
 
@@ -48,8 +48,8 @@ public class DBConfig {
 
     @Bean
     @ConditionalOnMissingBean({PlatformTransactionManager.class})
-    PDataSourceTransactionManager transactionManager(DataSource dataSource, ObjectProvider<TransactionManagerCustomizers> transactionManagerCustomizers) {
-        PDataSourceTransactionManager transactionManager = new PDataSourceTransactionManager(dataSource);
+    DataSourceTransactionManager transactionManager(DataSource dataSource, ObjectProvider<TransactionManagerCustomizers> transactionManagerCustomizers) {
+        DataSourceTransactionManager transactionManager = new DataSourceTransactionManager(dataSource);
         System.out.println(dataSource);
         transactionManagerCustomizers.ifAvailable((customizers) -> {
             customizers.customize(transactionManager);

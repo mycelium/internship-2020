@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 /**
@@ -23,8 +24,11 @@ public class ConcurTxManager implements IConcurTxManager {
     /**
      * Выполняется ли транзакция
      */
-    @Getter
-    private boolean isActiveTx = false;
+    private AtomicBoolean isActiveTx = new AtomicBoolean(false);
+
+    public boolean isActiveTransaction(){
+        return isActiveTx.get();
+    }
 
     /**
      * Данное свойство хранит номер политики отката транзакции
@@ -88,11 +92,11 @@ public class ConcurTxManager implements IConcurTxManager {
      * @return - результат выполнения тразакции
      */
     public <T> T executeConcurTx(Supplier<T> action){
-        if(isActiveTx) {
+        if(isActiveTx.get()) {
             System.out.println("Transaction is already active");
             return null;
         }
-        isActiveTx = true;
+        isActiveTx.set(true);
         return transactionTemplate.execute(s -> {
             status = s;
             getTransactionPropertiesFromTransactionSynchronizationManager();
@@ -102,7 +106,7 @@ public class ConcurTxManager implements IConcurTxManager {
             //Блокируем исполнение потока,
             //если есть хотя бы один дочерний поток
             commitLock();
-            isActiveTx = false;
+            isActiveTx.set(false);
             return result;
         });
     }

@@ -25,8 +25,8 @@
 		</dependency>
 
 		<dependency>
-			<groupId>ru.spbstu.amcp.internship.ParallelDBTaskExecution</groupId>
-			<artifactId>ParallelDBTaskExecutionLib</artifactId>
+			<groupId>ru.spbstu.amcp.internship.concurdb</groupId>
+			<artifactId>concurdb</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
