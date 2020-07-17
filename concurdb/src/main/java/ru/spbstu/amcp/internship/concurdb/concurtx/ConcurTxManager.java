@@ -92,10 +92,9 @@ public class ConcurTxManager implements IConcurTxManager {
      * @return - результат выполнения тразакции
      */
     public <T> T executeConcurTx(Supplier<T> action){
-        if(isActiveTx.get()) {
-            System.out.println("Transaction is already active");
-            return null;
-        }
+        if(isActiveTx.get())
+            throw new CannotCreateTransactionException("Transaction is already active (use another instance of ConcurTxManager)");
+
         isActiveTx.set(true);
         return transactionTemplate.execute(s -> {
             status = s;

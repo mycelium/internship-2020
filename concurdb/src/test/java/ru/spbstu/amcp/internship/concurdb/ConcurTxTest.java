@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 import ru.spbstu.amcp.internship.concurdb.ConcurTxTesting.dao.UserDao;
@@ -164,7 +165,12 @@ public class ConcurTxTest {
         cxtm2.executeConcurTx(()->{
             try {
                 //Менеджер не запустит новую транзакцию внутри текущей для одного менеджера
-                cxtm2.executeConcurTx(()->{return null;});
+                try {
+                    cxtm2.executeConcurTx(()->{return null;});
+                }catch (CannotCreateTransactionException e){
+                    System.out.println(e.getMessage());
+                }
+
 
                 //Можно не запускать задачи, а сразу использовать DAO
                 //Этот юзер будет записан
