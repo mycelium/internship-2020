@@ -19,7 +19,7 @@ import java.util.function.Supplier;
  * могут выполняться цепочки асинхронных и последовательных задач.
  */
 @Service
-public class ConcurTxManager implements IConcurTxManager {
+public class ConcurrentTransactionManager implements IConcurrentTransactionManager {
 
     /**
      * Выполняется ли транзакция
@@ -50,9 +50,9 @@ public class ConcurTxManager implements IConcurTxManager {
     private TransactionStatus status;
 
     /**
-     * Данное свойство хранит все запущенные цепочки задач - объекты TxAction
+     * Данное свойство хранит все запущенные цепочки задач - объекты TransactionAction
      */
-    private Queue<TxAction> childTxActionQueue = new ConcurrentLinkedQueue<>();
+    private Queue<TransactionAction> childTransactionActionQueue = new ConcurrentLinkedQueue<>();
 
     /**
      * Данное свойство содержит всю информацию о запущенной транзакции.
@@ -67,18 +67,18 @@ public class ConcurTxManager implements IConcurTxManager {
      * в методе commitLock перед коммитом транзакции.
      * @param child
      */
-    void putChildTxAction(TxAction child){
-        childTxActionQueue.add(child);
+    void putChildTxAction(TransactionAction child){
+        childTransactionActionQueue.add(child);
     }
 
     /**
      * Метод возвращает одну из цепочек задач, представленной объектом
-     * TxAction для последующей блокировки потока, который запустил транзакци,
-     * в методе commitLock, до тех пор, пока все задачи в объекте TxAction не выполнятся.
+     * TransactionAction для последующей блокировки потока, который запустил транзакци,
+     * в методе commitLock, до тех пор, пока все задачи в объекте TransactionAction не выполнятся.
      * @return Одна из исполняемых цепочек задач
      */
-    TxAction getAnyChildTxAction(){
-        return childTxActionQueue.poll();
+    TransactionAction getAnyChildTxAction(){
+        return childTransactionActionQueue.poll();
     }
 
     /**
@@ -87,13 +87,13 @@ public class ConcurTxManager implements IConcurTxManager {
      * автоматических.
      * @param action - выполняемая задача - внутри себя может содержать запуск
      *               последовательных и параллельных цепочек задач, формирующихся
-     *               объектом класса TxAction
+     *               объектом класса TransactionAction
      * @param <T>
      * @return - результат выполнения тразакции
      */
-    public <T> T executeConcurTx(Supplier<T> action){
+    public <T> T executeConcurrentTransaction(Supplier<T> action){
         if(isActiveTx.get())
-            throw new CannotCreateTransactionException("Transaction is already active (use another instance of ConcurTxManager)");
+            throw new CannotCreateTransactionException("Transaction is already active (use another instance of ConcurrentTransactionManager)");
 
         isActiveTx.set(true);
         return transactionTemplate.execute(s -> {
@@ -181,7 +181,7 @@ public class ConcurTxManager implements IConcurTxManager {
      * коммитом до тех пор, пока все цепочки задач не выполнятся.
      */
     private void commitLock(){
-        while(!childTxActionQueue.isEmpty()){
+        while(!childTransactionActionQueue.isEmpty()){
             try {
                 getAnyChildTxAction().get();
             }catch (ExecutionException exception){
@@ -209,7 +209,7 @@ public class ConcurTxManager implements IConcurTxManager {
      * с существующим TransactionTemplate.
      * @param transactionTemplate объект для запуска транзакции
      */
-    public ConcurTxManager(TransactionTemplate transactionTemplate){
+    public ConcurrentTransactionManager(TransactionTemplate transactionTemplate){
         txpolicy = TransactionRollbackPolicy.DEFAULT_SPRING_JDBC_POLICY;
         this.transactionTemplate = transactionTemplate;
     }
@@ -220,7 +220,7 @@ public class ConcurTxManager implements IConcurTxManager {
      * @param transactionManager объект для формирования объекта класса TransactionTemplate,
      *                           который будет формировать транзакцию
      */
-    public ConcurTxManager(PlatformTransactionManager transactionManager){
+    public ConcurrentTransactionManager(PlatformTransactionManager transactionManager){
         txpolicy = TransactionRollbackPolicy.DEFAULT_SPRING_JDBC_POLICY;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }

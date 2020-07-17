@@ -15,7 +15,7 @@ import java.util.function.Supplier;
 /**
  * Класс, объекты которого могут формировать цепочку задач
  * (как асинхронных, так и последовательных) в рамках транзакции,
- * созданной объектом класса ConcurTxManager.
+ * созданной объектом класса ConcurrentTransactionManager.
  *
  * Основая идея работы заключается в запуске асинхронных
  * и последовательных задач с помощью
@@ -28,13 +28,13 @@ import java.util.function.Supplier;
  */
 
 @Component
-public class TxAction implements ITxAction {
+public class TransactionAction implements ITransactionAction {
 
     /**
      * Менеджер транзакции, управляющий асинхронными и последовательными
      * цепочками задач.
      */
-    ConcurTxManager concurTxManager;
+    ConcurrentTransactionManager concurrentTransactionManager;
     /**
      * Список пулов из одного потока, каждый из которых выполняет
      * последовательную цепочку задач. При создании в другом потоке
@@ -45,7 +45,7 @@ public class TxAction implements ITxAction {
 
     /**
      * Свойство, которое необходимо для того, чтобы следить за
-     * процессом выполнения цепочек задач в рамках объекта TxAction
+     * процессом выполнения цепочек задач в рамках объекта TransactionAction
      * и не делать преждевременный коммит в родительском потоке.
      */
     CompletableFuture<?> completableFuture = null;
@@ -54,15 +54,15 @@ public class TxAction implements ITxAction {
      * При создании нового объекта необходимо сформировать
      * хотя бы один пул из одного потока для выполнения цепочки
      * последовательных задач.
-     * @param concurTxManager
+     * @param concurrentTransactionManager
      */
-    public TxAction(ConcurTxManager concurTxManager) {
-        if(!concurTxManager.isActiveTransaction()){
-            throw new RuntimeException("Can't create TxAction outside transaction");
+    public TransactionAction(ConcurrentTransactionManager concurrentTransactionManager) {
+        if(!concurrentTransactionManager.isActiveTransaction()){
+            throw new RuntimeException("Can't create TransactionAction outside transaction");
         }
-        this.concurTxManager = concurTxManager;
+        this.concurrentTransactionManager = concurrentTransactionManager;
         executorServices.add(Executors.newSingleThreadExecutor());
-        concurTxManager.putChildTxAction(this);
+        concurrentTransactionManager.putChildTxAction(this);
     }
 
     /**
@@ -72,7 +72,7 @@ public class TxAction implements ITxAction {
      * @return
      */
     @Override
-    public TxAction startAction(Supplier<? extends Object> action) {
+    public TransactionAction startAction(Supplier<? extends Object> action) {
         completableFuture = CompletableFuture.supplyAsync(()->{
             //Передача свойств транзакции дочернему потоку
             setTransactionProperties();
@@ -86,7 +86,7 @@ public class TxAction implements ITxAction {
      *    для будущего выполнения в рамках того же потока из пула
      */
     @Override
-    public TxAction putAnotherAction(Function<? super Object, ?> action) {
+    public TransactionAction putAnotherAction(Function<? super Object, ?> action) {
         //Транзакция останется действительной
         completableFuture = completableFuture.thenApplyAsync(action,
                 executorServices.get(executorServices.size()-1));
@@ -101,7 +101,7 @@ public class TxAction implements ITxAction {
      * @return
      */
     @Override
-    public TxAction putAnotherActionAsync(Function<? super Object, ?> action) {
+    public TransactionAction putAnotherActionAsync(Function<? super Object, ?> action) {
         //Добавляется новый исполнитель явно для CompletableFuture, чтобы
         //запустить выполнение в том потоке, который необходим
         executorServices.add(Executors.newSingleThreadExecutor());
@@ -147,7 +147,7 @@ public class TxAction implements ITxAction {
      */
     private void setTransactionProperties(){
         List<Object> props = new ArrayList<>();
-        props.addAll(concurTxManager.getTransactionProperties());
+        props.addAll(concurrentTransactionManager.getTransactionProperties());
 
         //Здесь передаю подключение к БД от родительского потока
         Map<Object, Object> resources = (Map<Object, Object>) props.get(0);

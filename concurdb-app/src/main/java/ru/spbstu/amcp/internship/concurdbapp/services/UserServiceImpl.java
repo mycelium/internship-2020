@@ -8,9 +8,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
-import ru.spbstu.amcp.internship.concurdb.concurtx.ConcurTxManager;
+import ru.spbstu.amcp.internship.concurdb.concurtx.ConcurrentTransactionManager;
 import ru.spbstu.amcp.internship.concurdb.concurtx.TransactionRollbackPolicy;
-import ru.spbstu.amcp.internship.concurdb.concurtx.TxAction;
+import ru.spbstu.amcp.internship.concurdb.concurtx.TransactionAction;
 import ru.spbstu.amcp.internship.concurdbapp.dao.UserDao;
 import ru.spbstu.amcp.internship.concurdbapp.model.User;
 
@@ -37,7 +37,7 @@ public class UserServiceImpl implements UserService {
     public void myTx(){
 
         //Создаю менеджер параллелльной транзакции
-        ConcurTxManager ctxm = new ConcurTxManager(transactionTemplate);
+        ConcurrentTransactionManager ctxm = new ConcurrentTransactionManager(transactionTemplate);
 
         //Устанавливаю политику отката - если в каком-то потоке необработанный exception, то вся транзакция
         //откатится
@@ -50,13 +50,13 @@ public class UserServiceImpl implements UserService {
         ctxm.getTransactionTemplate().setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
 
         //Запускаю транзакцию
-        ctxm.executeConcurTx(()->{
+        ctxm.executeConcurrentTransaction(()->{
 
             //Создаю последовательность задач в транзакции
             //Аналогично - CompletableFuture, но с передачей thread local
             //переменных транзакции дочерним потокам.
 
-            new TxAction(ctxm).startAction(()->{
+            new TransactionAction(ctxm).startAction(()->{
                 //DAO записывает в БД нового пользователя
                 //Этот юзер будет записан
                 dao.insert(new User(5, "Begin of innerAction"));
@@ -100,7 +100,7 @@ public class UserServiceImpl implements UserService {
                 dao.insert(new User(55, "Next action"));
 
                 Object savePoint1 = ctxm.createSavepoint();
-                TxAction inneraction = new TxAction(ctxm).startAction(()->{
+                TransactionAction inneraction = new TransactionAction(ctxm).startAction(()->{
                     //Этот юзер не запишется
                     dao.insert(new User(66,"Inner in Inner"));
                     return null;
@@ -127,11 +127,11 @@ public class UserServiceImpl implements UserService {
         });
 
         //Запустим новую транзакцию
-        ConcurTxManager cxtm2 = new ConcurTxManager(transactionTemplate);
-        cxtm2.executeConcurTx(()->{
+        ConcurrentTransactionManager cxtm2 = new ConcurrentTransactionManager(transactionTemplate);
+        cxtm2.executeConcurrentTransaction(()->{
             try {
                 //Менеджер не запустит новую транзакцию внутри текущей для одного менеджера
-                cxtm2.executeConcurTx(()->{return null;});
+                cxtm2.executeConcurrentTransaction(()->{return null;});
 
                 //Можно не запускать задачи, а сразу использовать DAO
                 //Этот юзер будет записан
@@ -139,7 +139,7 @@ public class UserServiceImpl implements UserService {
 
                 AtomicReference<Object> savePoint = new AtomicReference<>(new Object());
 
-                TxAction parenttx = new TxAction(cxtm2).startAction(()->{
+                TransactionAction parenttx = new TransactionAction(cxtm2).startAction(()->{
                     //Этот юзер будет записан
                     dao.insert(new User(101, "New transaction - Parent Action"));
 
@@ -147,7 +147,7 @@ public class UserServiceImpl implements UserService {
                     savePoint.set(cxtm2.createSavepoint());
 
                     //Задача - вложенность 2-го уровня
-                   TxAction childtx = new TxAction(cxtm2).startAction(()->{
+                   TransactionAction childtx = new TransactionAction(cxtm2).startAction(()->{
 
                        //Этот юзер не будет записан, так как он после сэйвпоинта
                        dao.insert(new User(102, "New transaction - Child Action"));
@@ -163,7 +163,7 @@ public class UserServiceImpl implements UserService {
                        return res;
                    });
 
-                   TxAction childtx2 = new TxAction(cxtm2).startAction(()->{
+                   TransactionAction childtx2 = new TransactionAction(cxtm2).startAction(()->{
 
                        //Этот юзер не будет записан, так как он после сэйвпоинта
                        dao.insert(new User(104, "New transaction - Child Action"));
@@ -194,10 +194,10 @@ public class UserServiceImpl implements UserService {
 
         //Вложенные транзакции
 
-        ConcurTxManager ctxm3 = new ConcurTxManager(new TransactionTemplate(mytransactionManager));
-        ConcurTxManager ctxm4 = new ConcurTxManager(new TransactionTemplate(mytransactionManager));
+        ConcurrentTransactionManager ctxm3 = new ConcurrentTransactionManager(new TransactionTemplate(mytransactionManager));
+        ConcurrentTransactionManager ctxm4 = new ConcurrentTransactionManager(new TransactionTemplate(mytransactionManager));
 
-        ctxm3.executeConcurTx(()->{
+        ctxm3.executeConcurrentTransaction(()->{
 
             //Этот юзер будет записан
             dao.insert(new User(200, "First Tx"));
@@ -205,12 +205,12 @@ public class UserServiceImpl implements UserService {
             //Для создания вложенной транзакции обязательно надо использовать новый поток (причина: thread local переменные)
             CompletableFuture.runAsync(() -> {
                 ctxm4.setTxpolicy(TransactionRollbackPolicy.ROLLBACK_WHOLE_TX_ON_EXECUTION_EXCEPTION_IN_ANY_THREAD);
-                ctxm4.executeConcurTx(() -> {
+                ctxm4.executeConcurrentTransaction(() -> {
 
                     //Этот юзер не будет записан, из-за выбранной политики
                     dao.insert(new User(201, "Second Tx"));
 
-                    new TxAction(ctxm4).startAction(() -> {
+                    new TransactionAction(ctxm4).startAction(() -> {
 
                         //Этот юзер не будет записан, из-за выбранной политики
                         dao.insert(new User(202, "Second Tx"));
@@ -227,7 +227,7 @@ public class UserServiceImpl implements UserService {
         });
 
         try{
-        new TxAction(ctxm3).startAction(()->{
+        new TransactionAction(ctxm3).startAction(()->{
 
             return null;
         });
