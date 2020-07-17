@@ -3,14 +3,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>ru.spbstu.amcp.ParallelDBMultiModuleProject</groupId>
-    <artifactId>ParallelDBMultiModuleProject</artifactId>
+    <groupId>ru.spbstu.amcp.internship</groupId>
+    <artifactId>concurdb-multi-project</artifactId>
     <version>0.1.0</version>
     <packaging>pom</packaging>
 
     <modules>
-        <module>ParallelDBTaskExecutionLib</module>
-        <module>ParallelDBTaskExecutionApp</module>
+        <module>concurdb-app</module>
+        <module>concurdb</module>
     </modules>
 
 </project>
