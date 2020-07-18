@@ -2,6 +2,7 @@ package ru.spbstu.amcp.internship.concurdbapp.services;
 
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
@@ -131,7 +132,11 @@ public class UserServiceImpl implements UserService {
         cxtm2.executeConcurrentTransaction(()->{
             try {
                 //Менеджер не запустит новую транзакцию внутри текущей для одного менеджера
-                cxtm2.executeConcurrentTransaction(()->{return null;});
+                try {
+                    cxtm2.executeConcurrentTransaction(()->{return null;});
+                }catch (CannotCreateTransactionException e){
+                    System.out.println(e.getMessage());
+                }
 
                 //Можно не запускать задачи, а сразу использовать DAO
                 //Этот юзер будет записан

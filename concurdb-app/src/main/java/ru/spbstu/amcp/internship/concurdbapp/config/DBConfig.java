@@ -8,8 +8,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.sqlite.SQLiteDataSource;
 
 import javax.sql.DataSource;
 
@@ -27,24 +27,24 @@ public class DBConfig {
 //        return ds;
 //    }
 
-    @Bean
-    public DataSource dataSource(){
-        SQLiteDataSource ds = new SQLiteDataSource();
-        ds.setUrl("jdbc:sqlite:ParallelDBTaskExecutionLib\\src\\main\\resources\\sql.db");
-        JdbcTemplate jdbc = new JdbcTemplate(ds);
-        return ds;
-    }
-
-//
 //    @Bean
 //    public DataSource dataSource(){
-//        DriverManagerDataSource ds = new DriverManagerDataSource();
-//        ds.setDriverClassName("org.mariadb.jdbc.Driver");
-//        ds.setUrl("jdbc:mariadb://localhost:3307/test_schema");
-//        ds.setUsername("root");
-//        ds.setPassword("root");
+//        SQLiteDataSource ds = new SQLiteDataSource();
+//        ds.setUrl("jdbc:sqlite:sql.db");
+//        JdbcTemplate jdbc = new JdbcTemplate(ds);
 //        return ds;
 //    }
+
+//
+    @Bean
+    public DataSource dataSource(){
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+        ds.setDriverClassName("org.mariadb.jdbc.Driver");
+        ds.setUrl("jdbc:mariadb://localhost:3307/test_schema");
+        ds.setUsername("root");
+        ds.setPassword("root");
+        return ds;
+    }
 
     @Bean
     @ConditionalOnMissingBean({PlatformTransactionManager.class})

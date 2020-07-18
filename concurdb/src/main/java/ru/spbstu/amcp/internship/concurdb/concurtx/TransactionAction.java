@@ -34,21 +34,21 @@ public class TransactionAction implements ITransactionAction {
      * Менеджер транзакции, управляющий асинхронными и последовательными
      * цепочками задач.
      */
-    ConcurrentTransactionManager concurrentTransactionManager;
+    private ConcurrentTransactionManager concurrentTransactionManager;
     /**
      * Список пулов из одного потока, каждый из которых выполняет
      * последовательную цепочку задач. При создании в другом потоке
      * новой последовательной цепочки задач (асинхронной)
      * создаётся пул из одного потока.
      */
-    List<ExecutorService> executorServices = new ArrayList<>();
+    private List<ExecutorService> executorServices = new ArrayList<>();
 
     /**
      * Свойство, которое необходимо для того, чтобы следить за
      * процессом выполнения цепочек задач в рамках объекта TransactionAction
      * и не делать преждевременный коммит в родительском потоке.
      */
-    CompletableFuture<?> completableFuture = null;
+    private CompletableFuture<?> completableFuture = null;
 
     /**
      * При создании нового объекта необходимо сформировать

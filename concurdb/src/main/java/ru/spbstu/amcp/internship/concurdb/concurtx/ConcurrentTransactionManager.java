@@ -77,7 +77,7 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
      * в методе commitLock, до тех пор, пока все задачи в объекте TransactionAction не выполнятся.
      * @return Одна из исполняемых цепочек задач
      */
-    TransactionAction getAnyChildTxAction(){
+    private TransactionAction getAnyChildTxAction(){
         return childTransactionActionQueue.poll();
     }
 
@@ -177,7 +177,7 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
 
 
     /**
-     * Метод блокирует поток, который запустил транзакцию, перед
+     * Метод блокирует поток, который запустил транзакцию перед
      * коммитом до тех пор, пока все цепочки задач не выполнятся.
      */
     private void commitLock(){
