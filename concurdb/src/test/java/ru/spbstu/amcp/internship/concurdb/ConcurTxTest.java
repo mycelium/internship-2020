@@ -52,6 +52,7 @@ public class ConcurTxTest {
         service = new UserServiceImpl(dao, transactionManager);
     }
 
+
     //Запись будет идти в таблицу Users5 в схеме public
     @Test
     public void myTx(){
