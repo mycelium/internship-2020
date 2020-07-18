@@ -16,9 +16,7 @@ import java.util.function.Supplier;
  * Class whose instances can form a chain of tasks
  * (both asynchronous and sequential) as part of a transaction,
  * created by an instance of the ConcurrentTransactionManager class.
- *
  */
-
 @Component
 public class TransactionAction implements ITransactionAction {
 
@@ -27,12 +25,7 @@ public class TransactionAction implements ITransactionAction {
      * task chains.
      */
     private ConcurrentTransactionManager concurrentTransactionManager;
-    /**
-     * A list of single thread pools, each of which executes
-     * a  chain of tasks. When creating a new sequential task chain
-     * a single thread pool is created.
-     */
-    private List<ExecutorService> executorServices = new ArrayList<>();
+
 
     /**
      * A property that is necessary in order to keep track of
@@ -52,7 +45,8 @@ public class TransactionAction implements ITransactionAction {
             throw new RuntimeException("Can't create TransactionAction outside transaction");
         }
         this.concurrentTransactionManager = concurrentTransactionManager;
-        executorServices.add(Executors.newSingleThreadExecutor());
+
+        concurrentTransactionManager.addNewExecutor(this);
         concurrentTransactionManager.putChildTxAction(this);
     }
 
@@ -64,11 +58,19 @@ public class TransactionAction implements ITransactionAction {
      */
     @Override
     public TransactionAction startAction(Supplier<? extends Object> action) {
+        if(!concurrentTransactionManager.isActiveTransaction())
+            throw new RuntimeException("Can't start action. Transaction is not active");
+
         completableFuture = CompletableFuture.supplyAsync(()->{
-            //Передача свойств транзакции дочернему потоку
+
+            if(!concurrentTransactionManager.isActiveTransaction())
+                throw new RuntimeException("Can't run action. Transaction is not active");
+
             setTransactionProperties();
             return action.get();
-        }, executorServices.get(0));
+
+        }, concurrentTransactionManager.getCurrentExecutor(this));
+
         return this;
     }
 
@@ -77,9 +79,17 @@ public class TransactionAction implements ITransactionAction {
      */
     @Override
     public TransactionAction putAnotherAction(Function<? super Object, ?> action) {
-        //Транзакция останется действительной
-        completableFuture = completableFuture.thenApplyAsync(action,
-                executorServices.get(executorServices.size()-1));
+        if(!concurrentTransactionManager.isActiveTransaction())
+            throw new RuntimeException("Can't add another action. Transaction is not active");
+
+        completableFuture = completableFuture.thenApplyAsync(previousResult->{
+
+                    if(!concurrentTransactionManager.isActiveTransaction())
+                        throw new RuntimeException("Can't run another action. Transaction is not active");
+
+                    return action.apply(previousResult);
+                },
+                concurrentTransactionManager.getCurrentExecutor(this));
         return this;
     }
 
@@ -89,17 +99,22 @@ public class TransactionAction implements ITransactionAction {
      */
     @Override
     public TransactionAction putAnotherActionAsync(Function<? super Object, ?> action) {
-        //Добавляется новый исполнитель явно для CompletableFuture, чтобы
-        //запустить выполнение в том потоке, который необходим
-        executorServices.add(Executors.newSingleThreadExecutor());
+
+        if(!concurrentTransactionManager.isActiveTransaction())
+            throw new RuntimeException("Can't add another action. Transaction is not active");
+
+        concurrentTransactionManager.addNewExecutor(this);
 
         completableFuture = completableFuture.thenApplyAsync(
                 previousResult->{
-                    //Передача свойств транзакции дочернему потоку
+
+                    if(!concurrentTransactionManager.isActiveTransaction())
+                        throw new RuntimeException("Can't run another action. Transaction is not active");
+
                     setTransactionProperties();
                     return action.apply(previousResult);
                 },
-                executorServices.get(executorServices.size()-1));
+                concurrentTransactionManager.getCurrentExecutor(this));
         return this;
     }
 
@@ -115,31 +130,20 @@ public class TransactionAction implements ITransactionAction {
             e.printStackTrace();
         } catch (ExecutionException e) {
             throw e;
-        }finally {
-            //Закрываем все однопоточные исполнители
-            for (var executor: executorServices) {
-                if(!executor.isShutdown()) {
-                    executor.shutdown();
-                    System.out.println("Executor shutdown");
-                }
-            }
         }
         return null;
     }
 
     /**
-     * Sets the properties of the transaction in the child thread.
+     * Transfers transaction properties to the child thread.
      */
     private void setTransactionProperties(){
-        List<Object> props = new ArrayList<>();
-        props.addAll(concurrentTransactionManager.getTransactionProperties());
 
-        //Здесь передаю подключение к БД от родительского потока
-        Map<Object, Object> resources = (Map<Object, Object>) props.get(0);
-        List<TransactionSynchronization> syncs = (List<TransactionSynchronization>) props.get(1);
-        String txName = (String) props.get(2);
-        Integer isoLevel = (Integer) props.get(3);
-        Boolean active = (Boolean) props.get(4);
+        Map<Object, Object> resources = concurrentTransactionManager.getTransactionProperties().getResources();
+        List<TransactionSynchronization> syncs = concurrentTransactionManager.getTransactionProperties().getSynchronizations();
+        String txName = concurrentTransactionManager.getTransactionProperties().getCurrentTransactionName();
+        Integer isoLevel = concurrentTransactionManager.getTransactionProperties().getCurrentTransactionIsolationLevel();
+        Boolean active = concurrentTransactionManager.getTransactionProperties().getActualTransactionActive();
 
         for (var e : resources.entrySet()) {
             TransactionSynchronizationManager.bindResource(e.getKey(), e.getValue());

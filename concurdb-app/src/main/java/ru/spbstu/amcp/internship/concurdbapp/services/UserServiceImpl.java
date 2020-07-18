@@ -42,7 +42,7 @@ public class UserServiceImpl implements UserService {
 
         //Устанавливаю политику отката - если в каком-то потоке необработанный exception, то вся транзакция
         //откатится
-        ctxm.setTxpolicy(TransactionRollbackPolicy.ROLLBACK_WHOLE_TX_ON_EXECUTION_EXCEPTION_IN_ANY_THREAD);
+        ctxm.setTransactionRollbackPolicy(TransactionRollbackPolicy.ROLLBACK_WHOLE_TX_ON_EXECUTION_EXCEPTION_IN_ANY_THREAD);
 
         //Можно установить уровень изоляции транзакции
         ctxm.getTransactionTemplate().setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
@@ -209,7 +209,7 @@ public class UserServiceImpl implements UserService {
 
             //Для создания вложенной транзакции обязательно надо использовать новый поток (причина: thread local переменные)
             CompletableFuture.runAsync(() -> {
-                ctxm4.setTxpolicy(TransactionRollbackPolicy.ROLLBACK_WHOLE_TX_ON_EXECUTION_EXCEPTION_IN_ANY_THREAD);
+                ctxm4.setTransactionRollbackPolicy(TransactionRollbackPolicy.ROLLBACK_WHOLE_TX_ON_EXECUTION_EXCEPTION_IN_ANY_THREAD);
                 ctxm4.executeConcurrentTransaction(() -> {
 
                     //Этот юзер не будет записан, из-за выбранной политики

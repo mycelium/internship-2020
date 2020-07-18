@@ -6,11 +6,8 @@ import org.springframework.transaction.*;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutionException;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
@@ -30,11 +27,38 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
         return isActiveTx.get();
     }
 
+
+    /**
+     * Key - one of the instances of TransactionAction class, that was created inside transaction.
+     *
+     * Value - A list of single thread pools, each of which executes
+     *         a  chain of tasks, created by TransactionAction instance.
+     *         When TransactionAction instance creating a new sequential task chain
+     *         a new single thread pool is created.
+     */
+    private Map<TransactionAction, List<ExecutorService>> executorServices = new HashMap<>();
+
+
+    ExecutorService addNewExecutor(TransactionAction txAction){
+
+        executorServices.putIfAbsent(txAction, new ArrayList<>());
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        executorServices.get(txAction).add(executorService);
+        return executorService;
+
+    }
+
+    ExecutorService getCurrentExecutor(TransactionAction txAction){
+        List<ExecutorService> execs = executorServices.get(txAction);
+        return execs.get(execs.size()-1);
+    }
+
+
     /**
      * Stores the transaction rollback policy.
      */
     @Getter
-    private TransactionRollbackPolicy txpolicy;
+    private TransactionRollbackPolicy transactionRollbackPolicy;
 
     /**
      * Starts the transaction in an imperative style.
@@ -55,11 +79,10 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
     private Queue<TransactionAction> childTransactionActionQueue = new ConcurrentLinkedQueue<>();
 
     /**
-     * Contains all information about a running transaction.
-     * The property will be passed to thread local variables of new threads.
+     * Contains all the information about transaction.
      */
     @Getter
-    private List<Object> transactionProperties = new ArrayList<Object>();
+    private TransactionProperties transactionProperties;
 
     /**
      * Remembers a new task chain to wait for its completion
@@ -75,7 +98,7 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
      * TransactionAction to subsequently lock the thread that started the transaction
      * in the commitLock method until all tasks in the TransactionAction instance are completed.
      */
-    private TransactionAction getAnyChildTxAction(){
+    private TransactionAction getAnyChildTransactionAction(){
         return childTransactionActionQueue.poll();
     }
 
@@ -179,13 +202,21 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
      */
     private void commitLock(){
         while(!childTransactionActionQueue.isEmpty()){
+            TransactionAction childAction = getAnyChildTransactionAction();
             try {
-                getAnyChildTxAction().get();
+                childAction.get();
             }catch (ExecutionException exception){
                 System.out.println("EXCEPTION IN CHILD THREAD!");
-                if(txpolicy ==
+                if(transactionRollbackPolicy ==
                         TransactionRollbackPolicy.ROLLBACK_WHOLE_TX_ON_EXECUTION_EXCEPTION_IN_ANY_THREAD)
                     this.setRollbackOnly();
+            }finally {
+                for (var executor: executorServices.get(childAction)) {
+                    if(!executor.isShutdown()) {
+                        executor.shutdown();
+                        System.out.println("Executor shutdown");
+                    }
+                }
             }
         }
     }
@@ -194,11 +225,14 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
      * Gets thread local transaction variables for transferring them to child threads
      */
     private void getTransactionPropertiesFromTransactionSynchronizationManager(){
-        transactionProperties.add(TransactionSynchronizationManager.getResourceMap());
-        transactionProperties.add(TransactionSynchronizationManager.getSynchronizations());
-        transactionProperties.add(TransactionSynchronizationManager.getCurrentTransactionName());
-        transactionProperties.add(TransactionSynchronizationManager.getCurrentTransactionIsolationLevel());
-        transactionProperties.add(TransactionSynchronizationManager.isActualTransactionActive());
+
+        transactionProperties = new TransactionProperties(
+                TransactionSynchronizationManager.getResourceMap(),
+                TransactionSynchronizationManager.getSynchronizations(),
+                TransactionSynchronizationManager.getCurrentTransactionName(),
+                TransactionSynchronizationManager.getCurrentTransactionIsolationLevel(),
+                TransactionSynchronizationManager.isActualTransactionActive());
+
     }
 
     /**
@@ -206,7 +240,7 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
      * with an existing instance of TransactionTemplate.
      */
     public ConcurrentTransactionManager(TransactionTemplate transactionTemplate){
-        txpolicy = TransactionRollbackPolicy.DEFAULT_SPRING_JDBC_POLICY;
+        transactionRollbackPolicy = TransactionRollbackPolicy.DEFAULT_SPRING_JDBC_POLICY;
         this.transactionTemplate = transactionTemplate;
     }
 
@@ -215,15 +249,15 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
      *  single-threaded transaction manager.
      */
     public ConcurrentTransactionManager(PlatformTransactionManager transactionManager){
-        txpolicy = TransactionRollbackPolicy.DEFAULT_SPRING_JDBC_POLICY;
+        transactionRollbackPolicy = TransactionRollbackPolicy.DEFAULT_SPRING_JDBC_POLICY;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     /**
      * Sets transaction rollback policy
      */
-    public void setTxpolicy(TransactionRollbackPolicy txpolicy){
-        this.txpolicy = txpolicy;
+    public void setTransactionRollbackPolicy(TransactionRollbackPolicy txpolicy){
+        this.transactionRollbackPolicy = txpolicy;
     }
 
 }
