@@ -103,68 +103,37 @@ public class PostgresConstraintsManager extends ConstraintsManager {
      */
     Constraint switchOneConstraint(String schemaName, String tableName, String constraint, String constraintType, boolean drop){
 
-        if(!constraintType.equals(ConstraintType.CHECK) && !constraintType.equals(ConstraintType.UNIQUE)
-         && !constraintType.equals(ConstraintType.DEFAULT) && !constraintType.equals(ConstraintType.FK)
-        && !constraintType.equals(ConstraintType.INDEX) && !constraintType.equals(ConstraintType.PK) &&
-        !constraintType.equals(ConstraintType.NOT_NULL))
+        if(!ConstraintType.isValidType(constraintType))
             throw new RuntimeException("Invalid constraint type");
 
         List<Constraint> constraints = tableConstraints.get(Arrays.asList(schemaName, tableName));
 
-        Constraint con = Constraint.buildDummyConstraint();
-        boolean performSwitching = false;
-        loop: for (Constraint c: constraints){
-            if(c.isDropped()==!drop && c.getSchemaName().equals(schemaName) && c.getTableName().equals(tableName)){
+        Constraint con = findConstraintToSwitch(schemaName, tableName, constraint, constraintType, drop, constraints);
 
-                switch (constraintType){
-                    case ConstraintType.CHECK:
-                    case ConstraintType.UNIQUE:
-                    case ConstraintType.FK:
-                    case ConstraintType.PK:
-                        if((c.getContype().equals(ConstraintType.CHECK)||c.getContype().equals(ConstraintType.UNIQUE)||
-                                c.getContype().equals(ConstraintType.FK)||c.getContype().equals(ConstraintType.PK))
-                                && c.getConname().equals(constraint)){
-                            performSwitching = true;
-                            con = c;
-                            break loop;
-                        }
-                        break;
-                    case ConstraintType.INDEX:
-                        if(c.getContype().equals(ConstraintType.INDEX) && c.getIndexName().equals(constraint)){
-                            performSwitching = true;
-                            con = c;
-                            break loop;
-                        }
-                        break;
-                    case ConstraintType.NOT_NULL:
-                        if(c.getContype().equals(ConstraintType.NOT_NULL) && c.getAttname().equals(constraint)){
-                            performSwitching = true;
-                            con = c;
-                            break loop;
-                        }
-                        break;
-                    case ConstraintType.DEFAULT:
-                        if(c.getContype().equals(ConstraintType.DEFAULT) && c.getAttname().equals(constraint)){
-                            performSwitching = true;
-                            con = c;
-                            break loop;
-                        }
-                        break;
-                }
-
-            }
-        }
-
-        if(performSwitching){
-            if(drop){
-                jdbc.execute(con.getDropDDL());
-                con.setDropped(true);
-            }else{
-                jdbc.execute(con.getRestoreDDL());
-                con.setDropped(false);
-            }
+        if(con != null){
+            performSwitching(drop, con);
         }
         return con;
+    }
+
+    private Constraint findConstraintToSwitch(String schemaName, String tableName, String constraint, String constraintType, boolean drop, List<Constraint> constraints) {
+        for (Constraint c: constraints){
+            if(c.isDropped()==!drop && c.getSchemaName().equals(schemaName) && c.getTableName().equals(tableName)
+                && c.getConstraintName().equals(constraint) && c.getContype().equals(constraintType)){
+                    return c;
+            }
+        }
+        return null;
+    }
+
+    private void performSwitching(boolean drop, Constraint con) {
+        if(drop){
+            jdbc.execute(con.getDropDDL());
+            con.setDropped(true);
+        }else{
+            jdbc.execute(con.getRestoreDDL());
+            con.setDropped(false);
+        }
     }
 
 

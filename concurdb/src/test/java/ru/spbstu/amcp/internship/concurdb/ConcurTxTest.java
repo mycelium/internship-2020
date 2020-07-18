@@ -289,6 +289,11 @@ public class ConcurTxTest {
 
         }
 
+        ctxm.shutdownEveryExecutor();
+        cxtm2.shutdownEveryExecutor();
+        ctxm3.shutdownEveryExecutor();
+        ctxm4.shutdownEveryExecutor();
+
 
     }
 

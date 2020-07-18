@@ -50,6 +50,12 @@ public class TransactionAction implements ITransactionAction {
         concurrentTransactionManager.putChildTxAction(this);
     }
 
+    /**
+     * When creating a new object, it is necessary to form
+     * at least one single thread pool to execute the chain of
+     * sequential tasks.
+     * @param concurrentTransactionManager
+     */
     public TransactionAction(ConcurrentTransactionManager concurrentTransactionManager, ExecutorService executorService) {
         if(!concurrentTransactionManager.isActiveTransaction()){
             throw new RuntimeException("Can't create TransactionAction outside transaction");
@@ -130,6 +136,10 @@ public class TransactionAction implements ITransactionAction {
         return this;
     }
 
+    /**
+     * Adds one new task to a new sequential chain running already in another thread from the new pool.
+     * All transaction properties are transferred to the new thread.
+     */
     @Override
     public TransactionAction putAnotherActionAsync(Function<? super Object, ?> action, ExecutorService executorService) {
 

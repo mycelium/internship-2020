@@ -43,7 +43,6 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
         executorServices.putIfAbsent(txAction, new ArrayList<>());
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         executorServices.get(txAction).add(executorService);
-
     }
 
     /**
@@ -57,6 +56,15 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
     ExecutorService getCurrentExecutor(TransactionAction txAction){
         List<ExecutorService> execs = executorServices.get(txAction);
         return execs.get(execs.size()-1);
+    }
+
+    public void shutdownEveryExecutor(){
+        for (var entry: executorServices.entrySet()) {
+            for (var executor: entry.getValue()) {
+                if(!executor.isShutdown())
+                    executor.shutdown();
+            }
+        }
     }
 
 
