@@ -13,47 +13,38 @@ import java.util.function.Supplier;
 
 
 /**
- * Класс, объекты которого могут формировать цепочку задач
- * (как асинхронных, так и последовательных) в рамках транзакции,
- * созданной объектом класса ConcurrentTransactionManager.
+ * Class whose instances can form a chain of tasks
+ * (both asynchronous and sequential) as part of a transaction,
+ * created by an instance of the ConcurrentTransactionManager class.
  *
- * Основая идея работы заключается в запуске асинхронных
- * и последовательных задач с помощью
- * CompletableFuture. Однако CompletableFuture может выполнять
- * действие из thenApply не в том потоке, который выполнял до этого
- * supplyAsync. Поэтому решено в данном классе для вызова как асинхронных,
- * так и последовательных задач использовать thenApplyAsync с явным указанием
- * потока (на самом деле пула потоков из одного потока), который будет
- * выполнять действие из thenApplyAsync.
  */
 
 @Component
 public class TransactionAction implements ITransactionAction {
 
     /**
-     * Менеджер транзакции, управляющий асинхронными и последовательными
-     * цепочками задач.
+     * Managing asynchronous and sequential
+     * task chains.
      */
     private ConcurrentTransactionManager concurrentTransactionManager;
     /**
-     * Список пулов из одного потока, каждый из которых выполняет
-     * последовательную цепочку задач. При создании в другом потоке
-     * новой последовательной цепочки задач (асинхронной)
-     * создаётся пул из одного потока.
+     * A list of single thread pools, each of which executes
+     * a  chain of tasks. When creating a new sequential task chain
+     * a single thread pool is created.
      */
     private List<ExecutorService> executorServices = new ArrayList<>();
 
     /**
-     * Свойство, которое необходимо для того, чтобы следить за
-     * процессом выполнения цепочек задач в рамках объекта TransactionAction
-     * и не делать преждевременный коммит в родительском потоке.
+     * A property that is necessary in order to keep track of
+     * the process of executing chains of tasks within an object and not
+     * make a premature commit in the parent thread.
      */
     private CompletableFuture<?> completableFuture = null;
 
     /**
-     * При создании нового объекта необходимо сформировать
-     * хотя бы один пул из одного потока для выполнения цепочки
-     * последовательных задач.
+     * When creating a new object, it is necessary to form
+     * at least one single thread pool to execute the chain of
+     * sequential tasks.
      * @param concurrentTransactionManager
      */
     public TransactionAction(ConcurrentTransactionManager concurrentTransactionManager) {
@@ -66,8 +57,8 @@ public class TransactionAction implements ITransactionAction {
     }
 
     /**
-     * Запуск первой цепочки последовательных задач с передачей
-     * всех свойств транзакции в поток из пула.
+     * Starts the first chain of sequential tasks and transfers
+     * all transaction properties to the thread from the pool.
      * @param action
      * @return
      */
@@ -82,8 +73,7 @@ public class TransactionAction implements ITransactionAction {
     }
 
     /**
-     *    Метод добавляет ещё одну задачу в последовательную цепочку
-     *    для будущего выполнения в рамках того же потока из пула
+     *  Adds another task to the sequential chain for future execution within the same thread from the pool
      */
     @Override
     public TransactionAction putAnotherAction(Function<? super Object, ?> action) {
@@ -94,11 +84,8 @@ public class TransactionAction implements ITransactionAction {
     }
 
     /**
-     * Метод добавляет одну задачу в новую последовательную цепочку, выполняющуюся
-     * уже в другом потоке из нового пула. В новый поток передаются все свойства
-     * транзакции.
-     * @param action
-     * @return
+     * Adds one new task to a new sequential chain running already in another thread from the new pool.
+     * All transaction properties are transferred to the new thread.
      */
     @Override
     public TransactionAction putAnotherActionAsync(Function<? super Object, ?> action) {
@@ -118,10 +105,8 @@ public class TransactionAction implements ITransactionAction {
 
 
     /**
-     * Метод блокирует поток, его вызвавший до завершения всех
-     * созданных цепочек задач.
-     * В конце необходимо выключить каждый созданный пул.
-     * @return результат выполнения последней задачи
+     * Blocks the thread before the completion of all created task chains.
+     * Turns off each created pool.
      */
     public Object get() throws ExecutionException {
         try {
@@ -143,7 +128,7 @@ public class TransactionAction implements ITransactionAction {
     }
 
     /**
-     * Метод устанавливает свойства транзакции в дочернем потоке
+     * Sets the properties of the transaction in the child thread.
      */
     private void setTransactionProperties(){
         List<Object> props = new ArrayList<>();

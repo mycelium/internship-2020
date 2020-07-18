@@ -25,10 +25,7 @@ public class MariaDBConstraintsManager extends ConstraintsManager {
     }
 
     /**
-     * Метод запоминает и возвращает все имеющиеся constraints для заданной таблицы в схеме
-     * @param schemaName
-     * @param tableName
-     * @return
+     * Remembers and returns all constraints for the given table in the schema.
      */
     @Override
     public List<Constraint> getAndInitAllConstraints(String schemaName, String tableName)
@@ -169,7 +166,7 @@ public class MariaDBConstraintsManager extends ConstraintsManager {
      *
      * If you are renaming a table, then it also requires the DROP, CREATE and INSERT privileges for the table or the database as well.
      *
-     * Метод вернет список прав для текущего пользователя на таблицу.
+     * Rreturns a list of rights for the current user to the table.
      */
 
     public List<String> getTablePrivilegesForCurrentUser(String schemaName, String tableName) {
@@ -198,7 +195,7 @@ public class MariaDBConstraintsManager extends ConstraintsManager {
      *
      * If you are renaming a table, then it also requires the DROP, CREATE and INSERT privileges for the table or the database as well.
      *
-     * Метод вернет список прав для текущего пользователя на схему.
+     * Returns a list of rights for the current user to the schema.
      *
      */
     public List<String> getSchemaPrivilegesForCurrentUser(String schemaName) {
@@ -228,7 +225,7 @@ public class MariaDBConstraintsManager extends ConstraintsManager {
      *
      * If you are renaming a table, then it also requires the DROP, CREATE and INSERT privileges for the table or the database as well.
      *
-     * Метод вернет список глобальных прав для текущего пользователя
+     * Returns a list of global rights for the current user.
      *
      */
     public List<String> getGlobalPrivilegesForCurrentUser(){
@@ -254,7 +251,7 @@ public class MariaDBConstraintsManager extends ConstraintsManager {
 
 
     /**
-     * Метод переключает constraint из выключенного во включенное состояние (drop = false) и наоборот (drop = true)
+     * Switches constraint from off to on (drop = false) and vice versa (drop = true)
      */
     Constraint switchOneConstraint(String schemaName, String tableName, String constraint, String constraintType, boolean drop){
 

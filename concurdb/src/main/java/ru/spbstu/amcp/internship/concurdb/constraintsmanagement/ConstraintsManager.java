@@ -7,7 +7,7 @@ import java.util.*;
 public abstract class ConstraintsManager {
 
     /**
-     * Ключ: (имя схемы, имя таблицы), Значение: список constraints
+     * Key: (schema name, table name), Value: list of constraints
      */
     @Getter
     protected Map<List<String>, List<Constraint>> tableConstraints = new HashMap<>();
@@ -17,14 +17,14 @@ public abstract class ConstraintsManager {
     abstract public List<Constraint> getAndInitAllConstraints(String schemaName, String tableName);
 
     /**
-     * Метод удаляет один constraint из таблицы
+     * Method removes one constraint from table
      */
     public Constraint dropOneConstraint(String schemaName, String tableName, String constraint, String constraintType){
         return switchOneConstraint(schemaName,  tableName,  constraint,  constraintType, true);
     }
 
     /**
-     * Метод восстнавливает один constraint
+     * Method restores one constraint
      */
     public Constraint restoreOneConstraint(String schemaName, String tableName, String constraint, String constraintType, boolean passException){
 
@@ -41,10 +41,10 @@ public abstract class ConstraintsManager {
 
 
     /**
-     * Метод восстанавливает все constraints для заданной таблицы.
-     * При выполнении метода часто будут печататься exceptions, но при правильном
-     * использовании это связано лишь с двойной попыткой восстановить индексы для PK и FK, что никак
-     * не нарушает правильность работы метода.
+     * Restores all constraints for the given table.
+     * When the method is executed, exceptions will often be printed,
+     * but when used correctly, this is only due to a double attempt to restore the indices for PK and FK,
+     * which does not violate the correct operation of the method.
      */
     public void restoreAllConstraintsInTable(String schemaName, String tableName, boolean passException){
 
@@ -64,10 +64,10 @@ public abstract class ConstraintsManager {
 
 
     /**
-     * Метод удаляет все constraints заданных видов из таблицы.
-     * При выполнении метода часто будут печататься exceptions, но при правильном
-     * использовании это связано лишь с двойной попыткой дропнуть индексы для PK и FK, что никак
-     * не нарушает правильность работы метода.
+     * Drops all constraints for the given table.
+     * When the method is executed, exceptions will often be printed,
+     * but when used correctly, this is only due to a double attempt to drop the indices for PK and FK,
+     * which does not violate the correct operation of the method.
      */
     public List<Constraint>  dropAllConstraintsInTable(String schemaName, String tableName, boolean passException, String... ConstraintTypes){
         for(var e : ConstraintTypes){

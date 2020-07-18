@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Класс для автоконфигурирования приложения пользователя
+ * Class for autoconfiguration of user application
  */
 @Configuration
 public class ConstraintsManagerConfiguration {

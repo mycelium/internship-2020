@@ -21,7 +21,7 @@ public class SQLiteConstraintsManager extends ConstraintsManager {
     }
 
     /**
-     * Метод удаляет/восстанавливает индекс
+     * Removes / restores index
      */
     @Override
     Constraint switchOneConstraint(String schemaName, String tableName, String constraint, String constraintType, boolean drop) {
@@ -54,7 +54,7 @@ public class SQLiteConstraintsManager extends ConstraintsManager {
     }
 
     /**
-     *  Метод запоминает только существующие (plain, unique, partial) индексы для заданной таблицы в схеме
+     *  Remembers (plain, unique, partial) indexes for a given table in the schema
      */
     @Override
     public List<Constraint> getAndInitAllConstraints(String schemaName, String tableName) {
@@ -97,7 +97,7 @@ public class SQLiteConstraintsManager extends ConstraintsManager {
     }
 
     /**
-     * Метод удаляет все индексы для таблицы.
+     * Removes all indexes for the table.
      */
     @Override
     public List<Constraint>  dropAllConstraintsInTable(String schemaName, String tableName, boolean passException, String... ConstraintTypes){
@@ -133,7 +133,7 @@ public class SQLiteConstraintsManager extends ConstraintsManager {
 
 
     /**
-     * Метод восстанавливает все constraints для заданной таблицы.
+     * Restores all constraints for the given table.
      */
     @Override
     public void restoreAllConstraintsInTable(String schemaName, String tableName, boolean passException){

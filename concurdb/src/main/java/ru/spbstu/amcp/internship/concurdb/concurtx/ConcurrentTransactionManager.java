@@ -22,7 +22,7 @@ import java.util.function.Supplier;
 public class ConcurrentTransactionManager implements IConcurrentTransactionManager {
 
     /**
-     * This property determines whether the transaction is active.
+     * Determines whether the transaction is active.
      */
     private AtomicBoolean isActiveTx = new AtomicBoolean(false);
 
@@ -31,40 +31,39 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
     }
 
     /**
-     * This property stores the transaction rollback policy number.
+     * Stores the transaction rollback policy.
      */
     @Getter
     private TransactionRollbackPolicy txpolicy;
 
     /**
-     * Данное свойство запускает транзакцию в императивном стиле.
+     * Starts the transaction in an imperative style.
      */
     @Getter
     private TransactionTemplate transactionTemplate;
 
     /**
-     * Данное свойство содержит статус транзакции и необходимо для
-     * реализации политик отката транзакции.
+     * Contains transaction status and is necessary for
+     * implementing transaction rollback policies.
      */
     @Getter
     private TransactionStatus status;
 
     /**
-     * Данное свойство хранит все запущенные цепочки задач - объекты TransactionAction
+     * Stores all running task chains (TransactionAction instances).
      */
     private Queue<TransactionAction> childTransactionActionQueue = new ConcurrentLinkedQueue<>();
 
     /**
-     * Данное свойство содержит всю информацию о запущенной транзакции.
-     * Свойство будет передаваться при асинхронном запуске цепочек задач
-     * в thread local переменные новых потоков.
+     * Contains all information about a running transaction.
+     * The property will be passed to thread local variables of new threads.
      */
     @Getter
     private List<Object> transactionProperties = new ArrayList<Object>();
 
     /**
-     * Запомнить новую цепочку задач для ожидания завершения её выполнения
-     * в методе commitLock перед коммитом транзакции.
+     * Remembers a new task chain to wait for its completion
+     * in the commitLock method before committing the transaction.
      * @param child
      */
     void putChildTxAction(TransactionAction child){
@@ -72,24 +71,22 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
     }
 
     /**
-     * Метод возвращает одну из цепочек задач, представленной объектом
-     * TransactionAction для последующей блокировки потока, который запустил транзакци,
-     * в методе commitLock, до тех пор, пока все задачи в объекте TransactionAction не выполнятся.
-     * @return Одна из исполняемых цепочек задач
+     * Returns one of the task chains represented by the instance of
+     * TransactionAction to subsequently lock the thread that started the transaction
+     * in the commitLock method until all tasks in the TransactionAction instance are completed.
      */
     private TransactionAction getAnyChildTxAction(){
         return childTransactionActionQueue.poll();
     }
 
     /**
-     * Метод запускает транзакцию и сохраняет всю информацию о транзакции,
-     * а также её статус для реализации политик отката, как ручных, так и
-     * автоматических.
-     * @param action - выполняемая задача - внутри себя может содержать запуск
-     *               последовательных и параллельных цепочек задач, формирующихся
-     *               объектом класса TransactionAction
+     * Starts the transaction and saves all the information about the transaction,
+     * as well as its status for the implementation of rollback policies, both manual and
+     * automatic.
+     * @param action - may contain sequential and parallel
+     *               chains of tasks formed by an instance of the class TransactionAction
      * @param <T>
-     * @return - результат выполнения тразакции
+     * @return - result of the transaction
      */
     public <T> T executeConcurrentTransaction(Supplier<T> action){
         if(isActiveTx.get())
@@ -169,7 +166,7 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
      * that the only possible outcome of the transaction may be a rollback, as
      * alternative to throwing an exception which would in turn trigger a rollback.
      *
-     * Откат тразакции на состояние до начала транзакции
+     * Rollback transaction to the state before transaction
      */
     public void setRollbackOnly(){
         status.setRollbackOnly();
@@ -177,8 +174,8 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
 
 
     /**
-     * Метод блокирует поток, который запустил транзакцию перед
-     * коммитом до тех пор, пока все цепочки задач не выполнятся.
+     * Blocks the thread that started the transaction before
+     * commit until all task chains are completed.
      */
     private void commitLock(){
         while(!childTransactionActionQueue.isEmpty()){
@@ -194,7 +191,7 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
     }
 
     /**
-     * Метод получает thread local переменные транзакции для переноса их в дочерние потоки
+     * Gets thread local transaction variables for transferring them to child threads
      */
     private void getTransactionPropertiesFromTransactionSynchronizationManager(){
         transactionProperties.add(TransactionSynchronizationManager.getResourceMap());
@@ -205,9 +202,8 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
     }
 
     /**
-     * Конструктор создаёт менеджер параллельной транзакции
-     * с существующим TransactionTemplate.
-     * @param transactionTemplate объект для запуска транзакции
+     * Creates a parallel transaction manager
+     * with an existing instance of TransactionTemplate.
      */
     public ConcurrentTransactionManager(TransactionTemplate transactionTemplate){
         txpolicy = TransactionRollbackPolicy.DEFAULT_SPRING_JDBC_POLICY;
@@ -215,10 +211,8 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
     }
 
     /**
-     *  Конструктор создаёт менеджер параллельной транзакции с существующим
-     *  менеджером однопоточной транзакции.
-     * @param transactionManager объект для формирования объекта класса TransactionTemplate,
-     *                           который будет формировать транзакцию
+     *  Creates a parallel transaction manager with an existing Spring
+     *  single-threaded transaction manager.
      */
     public ConcurrentTransactionManager(PlatformTransactionManager transactionManager){
         txpolicy = TransactionRollbackPolicy.DEFAULT_SPRING_JDBC_POLICY;
@@ -226,8 +220,7 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
     }
 
     /**
-     * Метод устанавливает политику отката транзакции
-     * @param txpolicy политика отката
+     * Sets transaction rollback policy
      */
     public void setTxpolicy(TransactionRollbackPolicy txpolicy){
         this.txpolicy = txpolicy;

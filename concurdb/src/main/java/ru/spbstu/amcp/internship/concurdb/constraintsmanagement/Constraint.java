@@ -5,88 +5,88 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * Тип constraint - u - unique, p - PK, f - FK, c - Check, d - default, n - not null, i - индекс
+ * Possible constraints: unique, PK, FK, check, default, not null, index
  */
 public class Constraint {
 
     /**
-     * Только для u, c, p, f
+     * Only for u, c, p, f (otherwise 0)
      */
     @Getter
     private int oid;
 
     /**
-     * Имя constraint - только для u,c,p,f
+     * Only for u,c,p,f (otherwise null)
      */
     @Getter
     private String conname;
     /**
-     * Тип constraint - u - unique, p - PK, f - FK, c - Check, d - default, n - not null, i - индекс
+     * Possible constraint type: u - unique, p - PK, f - FK, c - Check, d - default, n - not null, i - index
      */
     @Getter
     private String contype;
+
     /**
-     * Имя схемы
+     * The name of the schema containing a constraint
      */
     @Getter
     private String schemaName;
+
     /**
-     * Имя таблицы
+     * The name of the table containing a constraint
      */
     @Getter
     private String tableName;
     /**
-     * Код DDL
+     * DDL code of constraint
      */
     @Getter
     private String defDDL = "";
 
     /**
-     * Имя атрибута - только для default и not null
+     * The name of the constrained column (attribute).
+     * Only for default and not null constraints
      */
     @Getter
     private String attname;
 
     /**
-     * Тип default value - только для default constraint
+     * Only for default constraint (otherwise null).
      */
     @Getter
     private String defaultValueType;
 
     /**
-     * Default value - только для default constraint
+     * Only for default constraint (otherwise null).
      */
     @Getter
     private String defaultValue;
 
     /**
-     * Имя индекса для constraint вида index
+     * Only for indexes (otherwise null).
      */
     @Getter
     private String indexName;
 
-    /**
-     * DDL запрос на восстановление constraint
-     */
+
     @Getter
     @Setter
     private String restoreDDL;
 
-    /**
-     * DDL запрос на удаление constraint
-     */
+
     @Getter
     @Setter
     private String dropDDL;
 
+
     /**
-     * Статус constraint
+     * Constraint status
      */
     @Getter @Setter
     boolean isDropped = false;
 
     /**
-     * Создать новый ucpf constraint
+     * Creates new Unique or Check or PK or FK constraint depending on contype value
      */
     public static Constraint buildConstraintUCPF(int oid, String conname, String contype, String schemaName,
                                     String tableName, String ddl){
@@ -101,7 +101,7 @@ public class Constraint {
     }
 
     /**
-     * Создать not null constraint
+     * Creates new not null constraint
      */
     public static Constraint buildConstraintNotNull(String schemaName,
                                                     String tableName, String attname){
@@ -116,7 +116,7 @@ public class Constraint {
     }
 
     /**
-     * Создать default constraint
+     * Creates new default constraint
      */
     public static Constraint buildConstraintDefault(String schemaName,
                                                     String tableName, String attname,
@@ -135,7 +135,7 @@ public class Constraint {
     }
 
     /**
-     * Создать index constraint
+     * Creates new index constraint
      */
     public static Constraint buildConstraintIndex(String schemaName, String tableName, String indexName, String indexDef){
         Constraint ic = new Constraint(schemaName, tableName, indexName, indexDef);
@@ -198,8 +198,7 @@ public class Constraint {
     }
 
     /**
-     * При dropAllConstraints необходимо соблюдать порядок
-     * (например, not null не может быть удален с атрибута, пока есть PK)
+     * Order must be observed (for example, not null cannot be removed from an attribute while there is a PK)
      * @return
      */
     int determinePriority(){
@@ -216,8 +215,7 @@ public class Constraint {
     }
 
     /**
-     * В зависимости от типа constraint будут возвращены разные наименования
-     * @return
+     * Different names will be returned depending on the type of constraint
      */
     public String getConstraintName(){
         switch (contype){

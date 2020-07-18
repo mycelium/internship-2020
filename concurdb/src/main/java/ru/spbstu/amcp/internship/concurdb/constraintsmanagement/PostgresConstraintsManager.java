@@ -22,10 +22,7 @@ public class PostgresConstraintsManager extends ConstraintsManager {
     }
 
     /**
-     * Метод запоминает и возвращает все имеющиеся constraints для заданной таблицы в схеме
-     * @param schemaName
-     * @param tableName
-     * @return
+     * Remembers and returns all constraints for a given table in the schema
      */
     public List<Constraint> getAndInitAllConstraints(String schemaName, String tableName){
 
@@ -102,7 +99,7 @@ public class PostgresConstraintsManager extends ConstraintsManager {
 
 
     /**
-     * Метод переключает constraint из выключенного во включенное состояние (drop = false) и наоборот (drop = true)
+     * Switches constraint from off to on (drop = false) and vice versa (drop = true)
      */
     Constraint switchOneConstraint(String schemaName, String tableName, String constraint, String constraintType, boolean drop){
 
@@ -172,7 +169,7 @@ public class PostgresConstraintsManager extends ConstraintsManager {
 
 
     /**
-     * Метод вернет владельца таблицы. В postgres только владелец таблицы может делать ALTER TABLE
+     * Returns the owner of the table. In postgres, only the table owner can query ALTER TABLE
      * https://www.postgresql.org/docs/8.1/sql-altertable.html
      * @param schemaName
      * @param tableName
@@ -192,10 +189,9 @@ public class PostgresConstraintsManager extends ConstraintsManager {
     }
 
     /**
-     * Метод возвращает привелегии пользователся - CREATE - пользователь может изменять схему,
-     *                                             USAGE - пользователь может использовать схему,
-     *                                             (при условии, что объекты, лежащие внутри схемы
-     *                                             имеют соответствующие права)
+     * Returns user privileges - CREATE
+     *                           USAGE
+     *
      */
     public int getSchemaPrivileges(String schemaName){
 
