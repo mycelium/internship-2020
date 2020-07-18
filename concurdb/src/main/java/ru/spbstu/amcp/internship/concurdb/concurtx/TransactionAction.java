@@ -50,6 +50,16 @@ public class TransactionAction implements ITransactionAction {
         concurrentTransactionManager.putChildTxAction(this);
     }
 
+    public TransactionAction(ConcurrentTransactionManager concurrentTransactionManager, ExecutorService executorService) {
+        if(!concurrentTransactionManager.isActiveTransaction()){
+            throw new RuntimeException("Can't create TransactionAction outside transaction");
+        }
+        this.concurrentTransactionManager = concurrentTransactionManager;
+
+        concurrentTransactionManager.addNewExecutor(this, executorService);
+        concurrentTransactionManager.putChildTxAction(this);
+    }
+
     /**
      * Starts the first chain of sequential tasks and transfers
      * all transaction properties to the thread from the pool.
@@ -73,6 +83,8 @@ public class TransactionAction implements ITransactionAction {
 
         return this;
     }
+
+
 
     /**
      *  Adds another task to the sequential chain for future execution within the same thread from the pool
@@ -104,6 +116,27 @@ public class TransactionAction implements ITransactionAction {
             throw new RuntimeException("Can't add another action. Transaction is not active");
 
         concurrentTransactionManager.addNewExecutor(this);
+
+        completableFuture = completableFuture.thenApplyAsync(
+                previousResult->{
+
+                    if(!concurrentTransactionManager.isActiveTransaction())
+                        throw new RuntimeException("Can't run another action. Transaction is not active");
+
+                    setTransactionProperties();
+                    return action.apply(previousResult);
+                },
+                concurrentTransactionManager.getCurrentExecutor(this));
+        return this;
+    }
+
+    @Override
+    public TransactionAction putAnotherActionAsync(Function<? super Object, ?> action, ExecutorService executorService) {
+
+        if(!concurrentTransactionManager.isActiveTransaction())
+            throw new RuntimeException("Can't add another action. Transaction is not active");
+
+        concurrentTransactionManager.addNewExecutor(this, executorService);
 
         completableFuture = completableFuture.thenApplyAsync(
                 previousResult->{

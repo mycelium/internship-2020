@@ -39,13 +39,19 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
     private Map<TransactionAction, List<ExecutorService>> executorServices = new HashMap<>();
 
 
-    ExecutorService addNewExecutor(TransactionAction txAction){
-
+    void addNewExecutor(TransactionAction txAction){
         executorServices.putIfAbsent(txAction, new ArrayList<>());
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         executorServices.get(txAction).add(executorService);
-        return executorService;
 
+    }
+
+    /**
+     * Only single thread executors are supported!
+     */
+    void addNewExecutor(TransactionAction txAction,  ExecutorService executorService){
+        executorServices.putIfAbsent(txAction, new ArrayList<>());
+        executorServices.get(txAction).add(executorService);
     }
 
     ExecutorService getCurrentExecutor(TransactionAction txAction){
