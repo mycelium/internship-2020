@@ -9,7 +9,7 @@ public interface IConcurrentTransactionManager {
     void rollbackToSavepoint(Object savePoint);
     void releaseSavepoint(Object savePoint);
     void setRollbackOnly();
-    void setTxpolicy(int txpolicy);
-    int getTxpolicy();
+    void setTxpolicy(TransactionRollbackPolicy txpolicy);
+    TransactionRollbackPolicy getTxpolicy();
 
 }

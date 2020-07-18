@@ -15,14 +15,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 /**
- * Класс, объекты которого формируют транзакции, внутри которых
- * могут выполняться цепочки асинхронных и последовательных задач.
+ * A class whose instances form transactions,
+ * inside which chains of asynchronous and sequential tasks can be executed.
  */
 @Service
 public class ConcurrentTransactionManager implements IConcurrentTransactionManager {
 
     /**
-     * Выполняется ли транзакция
+     * This property determines whether the transaction is active.
      */
     private AtomicBoolean isActiveTx = new AtomicBoolean(false);
 
@@ -31,10 +31,10 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
     }
 
     /**
-     * Данное свойство хранит номер политики отката транзакции
+     * This property stores the transaction rollback policy number.
      */
     @Getter
-    private int txpolicy;
+    private TransactionRollbackPolicy txpolicy;
 
     /**
      * Данное свойство запускает транзакцию в императивном стиле.
@@ -229,10 +229,7 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
      * Метод устанавливает политику отката транзакции
      * @param txpolicy политика отката
      */
-    public void setTxpolicy(int txpolicy){
-        if(txpolicy != TransactionRollbackPolicy.DEFAULT_SPRING_JDBC_POLICY
-        && txpolicy != TransactionRollbackPolicy.ROLLBACK_WHOLE_TX_ON_EXECUTION_EXCEPTION_IN_ANY_THREAD)
-            throw new IllegalArgumentException("No such rollback policy");
+    public void setTxpolicy(TransactionRollbackPolicy txpolicy){
         this.txpolicy = txpolicy;
     }
 
