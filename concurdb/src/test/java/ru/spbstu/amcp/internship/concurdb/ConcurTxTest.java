@@ -34,6 +34,7 @@ public class ConcurTxTest {
     DataSourceTransactionManager transactionManager;
     JdbcTemplate jdbcTemplate;
 
+    //Schema - public, table - users5
     DataSource dataSource(){
         DriverManagerDataSource ds = new DriverManagerDataSource();
         ds.setDriverClassName("org.postgresql.Driver");
@@ -53,11 +54,9 @@ public class ConcurTxTest {
     }
 
 
-    //Запись будет идти в таблицу Users5 в схеме public
-    @Test
-    public void myTx(){
 
-        //Ожидаемый результат
+    @Test
+    public void innerSavePointTest() {
         List<User> expectedResult = Arrays.asList(
                 new User(5, "Begin of innerAction"),
                 new User(6, "Next action in inner"),
@@ -65,197 +64,184 @@ public class ConcurTxTest {
                 new User(8, "Next action in innerAsync"),
                 new User(9, "Next action in innerAsync"),
                 new User(10, "Next action in innerAsync"),
-                new User(55, "Next action"),
-                new User(100,"New Transaction"),
-                new User(101, "New transaction - Parent Action"),
-                new User(200, "First Tx")
-        );
+                new User(55, "Next action")
+                );
 
-        //Создаю менеджер параллелльной транзакции
         ConcurrentTransactionManager ctxm = new ConcurrentTransactionManager(service.getTransactionTemplate());
-
-        //Устанавливаю политику отката - если в каком-то потоке необработанный exception, то вся транзакция
-        //откатится
         ctxm.setTransactionRollbackPolicy(TransactionRollbackPolicy.ROLLBACK_WHOLE_TX_ON_EXECUTION_EXCEPTION_IN_ANY_THREAD);
-
-        //Можно установить уровень изоляции транзакции
         ctxm.getTransactionTemplate().setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
-
-        //Можно установить propagation
         ctxm.getTransactionTemplate().setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        ctxm.executeConcurrentTransaction(() -> {
 
-        //Запускаю транзакцию
-        ctxm.executeConcurrentTransaction(()->{
-
-            //Создаю последовательность задач в транзакции
-            //Аналогично - CompletableFuture, но с передачей thread local
-            //переменных транзакции дочерним потокам.
-
-            new TransactionAction(ctxm).startAction(()->{
-                //DAO записывает в БД нового пользователя
-                //Этот юзер будет записан
+            new TransactionAction(ctxm).startAction(() -> {
                 dao.insert(new User(5, "Begin of innerAction"));
                 return null;
             })
-                    //Ставлю в очередь новую задачу для исполнения в том же потоке.
-                    //Можно передавать результат предыдущей задачи новой задаче в цепочке.
-                    .putAnotherAction(prev->{
-
-                        //Эти юзеры записаны будут
+                    .putAnotherAction(prev -> {
                         dao.insert(new User(6, "Next action in inner"));
                         dao.insert(new User(7, "Next action in inner"));
-
                         return null;
                     })
-                    //Эта задача запустится в новом потоке
-                    .putAnotherActionAsync(prev->{
+                    .putAnotherActionAsync(prev -> {
                         Object savePoint = new Object();
                         try {
-                            //Ручной откат поддерживается в дочерних потоках
                             savePoint = ctxm.createSavepoint();
-
-                            //Юзер заново не перезапишется и транзакция не упадёт
                             dao.insert(new User(7, "Next action in innerAsync"));
-                        }catch (Exception e){
+                        } catch (Exception e) {
                             System.out.println(e.getMessage());
 
                             ctxm.rollbackToSavepoint(savePoint);
-                        }finally {
+                        } finally {
                             ctxm.releaseSavepoint(savePoint);
                         }
-                        //Эти юзеры записаны будут
                         dao.insert(new User(8, "Next action in innerAsync"));
                         dao.insert(new User(9, "Next action in innerAsync"));
                         dao.insert(new User(10, "Next action in innerAsync"));
                         return null;
                     })
-                    //Эта задача запустится в новом потоке
-                    .putAnotherActionAsync(prev->{
-                        //Этот юзер тоже запишется
+                    .putAnotherActionAsync(prev -> {
                         dao.insert(new User(55, "Next action"));
 
                         Object savePoint1 = ctxm.createSavepoint();
-                        TransactionAction inneraction = new TransactionAction(ctxm).startAction(()->{
-                            //Этот юзер не запишется
-                            dao.insert(new User(66,"Inner in Inner"));
+                        TransactionAction inneraction = new TransactionAction(ctxm).startAction(() -> {
+                            dao.insert(new User(66, "Inner in Inner"));
                             return null;
-                        }).putAnotherActionAsync(prevRes->{
-                            //Этот юзер не запишется
+                        }).putAnotherActionAsync(prevRes -> {
                             dao.insert(new User(77, "Async Inner"));
                             return null;
                         });
-                        //Так как хочется, чтобы откатилась задача, созданная выше, то надо подождать,
-                        //пока она выполнится
                         try {
                             inneraction.get();
                         } catch (ExecutionException exception) {
                             exception.printStackTrace();
                         }
                         ctxm.rollbackToSavepoint(savePoint1);
-
-                        //ctxm.setRollbackOnly(); - ручной откат до начала транзакции - все юзеры будут стёрты
-                        //throw new RuntimeException("Откат транзакции из-за выбранной политики") - все юзеры будут стёрты
                         return null;
                     });
 
             return null;
         });
 
-        //Запустим новую транзакцию
-        ConcurrentTransactionManager cxtm2 = new ConcurrentTransactionManager(service.getTransactionTemplate());
-        cxtm2.executeConcurrentTransaction(()->{
-            try {
-                //Менеджер не запустит новую транзакцию внутри текущей для одного менеджера
-                try {
-                    cxtm2.executeConcurrentTransaction(()->{return null;});
-                }catch (CannotCreateTransactionException e){
-                    System.out.println(e.getMessage());
-                }
-
-
-                //Можно не запускать задачи, а сразу использовать DAO
-                //Этот юзер будет записан
-                dao.insert(new User(100, "New Transaction"));
-
-                AtomicReference<Object> savePoint = new AtomicReference<>(new Object());
-
-                TransactionAction parenttx = new TransactionAction(cxtm2).startAction(()->{
-                    //Этот юзер будет записан
-                    dao.insert(new User(101, "New transaction - Parent Action"));
-
-                    //Устнавливаю сейвпоинт в другом потоке
-                    savePoint.set(cxtm2.createSavepoint());
-
-                    //Задача - вложенность 2-го уровня
-                    TransactionAction childtx = new TransactionAction(cxtm2).startAction(()->{
-
-                        //Этот юзер не будет записан, так как он после сэйвпоинта
-                        dao.insert(new User(102, "New transaction - Child Action"));
-
-                        return null;
-                    }).putAnotherActionAsync(res->{
-
-                        //Этот юзер не будет записан, так как он после сэйвпоинта
-                        dao.insert(new User(103, "New transaction - Child Action"));
-                        //Изменение имени откатится
-                        dao.changeUserName(100, "New name");
-
-                        return res;
-                    });
-
-                    TransactionAction childtx2 = new TransactionAction(cxtm2).startAction(()->{
-
-                        //Этот юзер не будет записан, так как он после сэйвпоинта
-                        dao.insert(new User(104, "New transaction - Child Action"));
-                        return  null;
-                    });
-
-                    try {
-                        childtx.get();
-                        childtx2.get();
-                    } catch (ExecutionException exception) {
-                        exception.printStackTrace();
-                    }
-                    return null;
+        List<User> obtainedResult = jdbcTemplate.query("select * from users5",
+                (rs, i) -> {
+                    return new User(rs.getInt("id"), rs.getString("name"));
                 });
 
-                //Ожидаем завершения всех подзадач в транзакции
-                parenttx.get();
+        Assert.assertTrue(obtainedResult.size() == expectedResult.size());
 
-                //Делаем откат - останется Юзер с id = 101 и 100.
-                cxtm2.rollbackToSavepoint(savePoint.get());
+        for (int i = 0; i < obtainedResult.size(); i++) {
 
-                Thread.sleep(100);
-            } catch (InterruptedException | ExecutionException e) {
-                e.printStackTrace();
+            Assert.assertTrue(obtainedResult.get(i).getId() == expectedResult.get(i).getId());
+            Assert.assertTrue(obtainedResult.get(i).getName().equals(expectedResult.get(i).getName()));
+
+        }
+
+        ctxm.shutdownEveryExecutor();
+    }
+
+        @Test
+        public void outerSavePointTest() {
+
+            List<User> expectedResult = Arrays.asList(
+                    new User(100, "New Transaction"),
+                    new User(101, "New transaction - Parent Action")
+            );
+
+            ConcurrentTransactionManager cxtm = new ConcurrentTransactionManager(service.getTransactionTemplate());
+            cxtm.executeConcurrentTransaction(() -> {
+                try {
+                    try {
+                        cxtm.executeConcurrentTransaction(() -> {
+                            return null;
+                        });
+                    } catch (CannotCreateTransactionException e) {
+                        System.out.println(e.getMessage());
+                    }
+
+                    dao.insert(new User(100, "New Transaction"));
+
+                    AtomicReference<Object> savePoint = new AtomicReference<>(new Object());
+
+                    TransactionAction parenttx = new TransactionAction(cxtm).startAction(() -> {
+                        dao.insert(new User(101, "New transaction - Parent Action"));
+
+                        savePoint.set(cxtm.createSavepoint());
+
+                        TransactionAction childtx = new TransactionAction(cxtm).startAction(() -> {
+
+                            dao.insert(new User(102, "New transaction - Child Action"));
+                            return null;
+
+                        }).putAnotherActionAsync(res -> {
+
+                            dao.insert(new User(103, "New transaction - Child Action"));
+                            dao.changeUserName(100, "New name");
+
+                            return res;
+                        });
+
+                        TransactionAction childtx2 = new TransactionAction(cxtm).startAction(() -> {
+                            dao.insert(new User(104, "New transaction - Child Action"));
+                            return null;
+                        });
+
+                        try {
+                            childtx.get();
+                            childtx2.get();
+                        } catch (ExecutionException exception) {
+                            exception.printStackTrace();
+                        }
+                        return null;
+                    });
+
+                    parenttx.get();
+                    cxtm.rollbackToSavepoint(savePoint.get());
+                    Thread.sleep(100);
+                } catch (InterruptedException | ExecutionException e) {
+                    e.printStackTrace();
+                }
+                return null;
+            });
+
+            List<User> obtainedResult = jdbcTemplate.query("select * from users5",
+                    (rs, i) -> {
+                        return new User(rs.getInt("id"), rs.getString("name"));
+                    });
+
+            Assert.assertTrue(obtainedResult.size() == expectedResult.size());
+
+            for (int i = 0; i < obtainedResult.size(); i++) {
+
+                Assert.assertTrue(obtainedResult.get(i).getId() == expectedResult.get(i).getId());
+                Assert.assertTrue(obtainedResult.get(i).getName().equals(expectedResult.get(i).getName()));
+
             }
-            return null;
-        });
+            cxtm.shutdownEveryExecutor();
 
-        //Вложенные транзакции
+        }
 
-        ConcurrentTransactionManager ctxm3 = new ConcurrentTransactionManager(new TransactionTemplate(transactionManager));
-        ConcurrentTransactionManager ctxm4 = new ConcurrentTransactionManager(new TransactionTemplate(transactionManager));
 
-        ctxm3.executeConcurrentTransaction(()->{
+        @Test
+        public void nestedTransactionTest(){
 
-            //Этот юзер будет записан
+            List<User> expectedResult = Arrays.asList(
+                    new User(200, "First Tx")
+            );
+
+        ConcurrentTransactionManager ctxm1 = new ConcurrentTransactionManager(new TransactionTemplate(transactionManager));
+        ConcurrentTransactionManager ctxm2 = new ConcurrentTransactionManager(new TransactionTemplate(transactionManager));
+
+        ctxm1.executeConcurrentTransaction(()->{
+
             dao.insert(new User(200, "First Tx"));
 
-            //Для создания вложенной транзакции обязательно надо использовать новый поток (причина: thread local переменные)
             CompletableFuture.runAsync(() -> {
-                ctxm4.setTransactionRollbackPolicy(TransactionRollbackPolicy.ROLLBACK_WHOLE_TX_ON_EXECUTION_EXCEPTION_IN_ANY_THREAD);
-                ctxm4.executeConcurrentTransaction(() -> {
+                ctxm2.setTransactionRollbackPolicy(TransactionRollbackPolicy.ROLLBACK_WHOLE_TX_ON_EXECUTION_EXCEPTION_IN_ANY_THREAD);
+                ctxm2.executeConcurrentTransaction(() -> {
 
-                    //Этот юзер не будет записан, из-за выбранной политики
                     dao.insert(new User(201, "Second Tx"));
-
-                    new TransactionAction(ctxm4).startAction(() -> {
-
-                        //Этот юзер не будет записан, из-за выбранной политики
+                    new TransactionAction(ctxm2).startAction(() -> {
                         dao.insert(new User(202, "Second Tx"));
-
-                        //Исключение вернет БД в состояние до транзакции - из-за выбранной политики
                         throw new RuntimeException("Rollback Second Tx");
 
                     });
@@ -266,34 +252,21 @@ public class ConcurTxTest {
             return null;
         });
 
-        try{
-            new TransactionAction(ctxm3).startAction(()->{
+            List<User> obtainedResult = jdbcTemplate.query("select * from users5",
+                    (rs, i) -> {
+                        return new User(rs.getInt("id"), rs.getString("name"));
+                    });
 
-                return null;
-            });
-        }catch (RuntimeException e){
-            System.out.println("expected exception");
-        }
+            Assert.assertTrue(obtainedResult.size() == expectedResult.size());
 
-        List<User> obtainedResult = jdbcTemplate.query("select * from users5",
-                (rs, i)->{
-                    return new User(rs.getInt("id"), rs.getString("name"));
-                });
+            for (int i = 0; i < obtainedResult.size(); i++) {
 
-        Assert.assertTrue(obtainedResult.size() == expectedResult.size());
+                Assert.assertTrue(obtainedResult.get(i).getId() == expectedResult.get(i).getId());
+                Assert.assertTrue(obtainedResult.get(i).getName().equals(expectedResult.get(i).getName()));
 
-        for(int i = 0; i < obtainedResult.size(); i++){
-
-            Assert.assertTrue(obtainedResult.get(i).getId() == expectedResult.get(i).getId());
-            Assert.assertTrue(obtainedResult.get(i).getName().equals(expectedResult.get(i).getName()));
-
-        }
-
-        ctxm.shutdownEveryExecutor();
-        cxtm2.shutdownEveryExecutor();
-        ctxm3.shutdownEveryExecutor();
-        ctxm4.shutdownEveryExecutor();
-
+            }
+            ctxm1.shutdownEveryExecutor();
+            ctxm2.shutdownEveryExecutor();
 
     }
 

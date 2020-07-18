@@ -34,9 +34,7 @@ public class MariaDBTest {
         databasePopulator.execute(jdbcTemplate.getDataSource());
     }
 
-    /**
-     * Тест для FK и PK с autoincrement
-     */
+
     @Test
     public void testMariaDBConstraintsManagerOnComplexFKAndAutoIncrement(){
 
@@ -61,27 +59,22 @@ public class MariaDBTest {
 
         MariaDBConstraintsManager.REMOVE_AUTO_INCREMENT_BEFORE_PK = true;
 
-        //Инициализирую constraints
         mcm.getAndInitAllConstraints("public","product_order");
 
-        //Удаляю все constraints
         mcm.dropAllConstraintsInTable("public","product_order", true,
                 ConstraintType.CHECK, ConstraintType.DEFAULT, ConstraintType.FK, ConstraintType.PK,
                 ConstraintType.INDEX, ConstraintType.NOT_NULL, ConstraintType.UNIQUE);
 
 
-        //Получаю DDL таблицы
         String tableDDL = jdbcTemplate.queryForObject("SHOW CREATE TABLE public.product_order;",
                 (rs,i)->rs.getString(2));
 
 
         Assert.assertTrue(ddlAfterDropping.equals(tableDDL));
 
-        //Восстанавливаю все constraints
         mcm.restoreAllConstraintsInTable("public","product_order", true);
 
 
-        //Получаю DDL таблицы
         tableDDL = jdbcTemplate.queryForObject("SHOW CREATE TABLE public.product_order;",
                 (rs,i)->rs.getString(2));
 
@@ -123,7 +116,6 @@ public class MariaDBTest {
                 "  KEY `distfk` (`user_id`,`user_name`)\n" +
                 ") ENGINE=InnoDB DEFAULT CHARSET=latin1";
 
-        //Инициализирую constraints
         List<Constraint> constraints = mcm.getAndInitAllConstraints("test_schema", "car");
 
         String tableDDL = jdbcTemplate.queryForObject("SHOW CREATE TABLE test_schema.car;",

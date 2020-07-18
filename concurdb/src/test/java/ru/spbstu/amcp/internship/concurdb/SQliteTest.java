@@ -24,7 +24,6 @@ public class SQliteTest {
 
     JdbcTemplate jdbcTemplate;
 
-    //Все сгенерированные индексы из тестового sql файла
     List<List<String>> generatedIndexes = Arrays.asList(
             Arrays.asList("trackindex1", "CREATE INDEX main.trackindex1 ON track(trackartist, trackid)"),
             Arrays.asList("trackindex2", "CREATE INDEX main.trackindex2 ON track(trackartist DESC, trackid)"),
@@ -38,26 +37,20 @@ public class SQliteTest {
         jdbcTemplate = new JdbcTemplate(dataSource());
         scm = new SQLiteConstraintsManager(jdbcTemplate);
 
-        //Загрузка тестового sql файла
         Resource resource = new ClassPathResource("sqlitecar.sql");
         ResourceDatabasePopulator databasePopulator = new ResourceDatabasePopulator(resource);
         databasePopulator.execute(jdbcTemplate.getDataSource());
     }
 
 
-    /***
-     *  Тест проверяет, что все индексы прочитаны
-     */
+
     @Test
     public void testIndexInitialization() throws InterruptedException {
 
-        //Получаю все индексы
         List<Constraint> indexes = scm.getAndInitAllConstraints("main", "track");
 
-        //Проверяю, что получены все индексы
         Assert.assertTrue(indexes.size() == generatedIndexes.size());
 
-        //Проверяю ddl для каждого индекса
         indexes.forEach(
                 constraint -> {
                     Assert.assertTrue(generatedIndexes.stream().anyMatch(nameAndDDL ->
@@ -66,13 +59,10 @@ public class SQliteTest {
         );
     }
 
-    /**
-     * Тест на удаления одного индекса
-     */
+
     @Test
     public void testDropAndRestorePartialUniqueIndex(){
 
-        //Ожидаемый результат после удаления индекса
         List<List<String>> expectedResultAfterDropping = Arrays.asList(
                 Arrays.asList("trackindex1", "CREATE INDEX main.trackindex1 ON track(trackartist, trackid)"),
                 Arrays.asList("trackindex2", "CREATE INDEX main.trackindex2 ON track(trackartist DESC, trackid)"),
@@ -80,14 +70,11 @@ public class SQliteTest {
                 Arrays.asList("partial_index", "CREATE INDEX main.partial_index ON track(trackid) WHERE trackname IS NOT NULL")
         );
 
-        //Получаю все индексы
         scm.getAndInitAllConstraints("main", "track");
 
-        //Удаляю индекс
         scm.dropOneConstraint("main", "track", "partial_unique_index", ConstraintType.INDEX);
 
 
-        //Проверяю, что остались нужные индексы
         List<List<String>> obtainedAfterDropping = getIndexes("main", "track", jdbcTemplate);
 
         Assert.assertEquals(obtainedAfterDropping.size(), expectedResultAfterDropping.size());
@@ -100,10 +87,8 @@ public class SQliteTest {
 
         });
 
-        //Восстанавливаю индекс
         scm.restoreOneConstraint("main", "track", "partial_unique_index", ConstraintType.INDEX, true);
 
-        //Проверяю, что восстановлены все индексы
         List<List<String>> obtainedAfterRestoring = getIndexes("main", "track", jdbcTemplate);
 
         Assert.assertEquals(obtainedAfterRestoring.size(), generatedIndexes.size());
@@ -118,27 +103,20 @@ public class SQliteTest {
 
     }
 
-    /**
-     * Тест на удаления всех индексов
-     */
+
     @Test
     public void testDropAndRestoreAllIndexes(){
 
-        //Получаю все индексы
         scm.getAndInitAllConstraints("main", "track");
 
-        //Удаляю все индексы
         scm.dropAllConstraintsInTable("main", "track", true,  ConstraintType.INDEX);
 
-        //Проверяю, что индексов больше нет
         List<List<String>> obtainedAfterDropping = getIndexes("main", "track", jdbcTemplate);
 
         Assert.assertEquals(obtainedAfterDropping.size(), 0);
 
-        //Восстанавливаю индексы
         scm.restoreAllConstraintsInTable("main", "track", true);
 
-        //Проверяю, что восстановлены все индексы
         List<List<String>> obtainedAfterRestoring = getIndexes("main", "track", jdbcTemplate);
 
         Assert.assertEquals(obtainedAfterRestoring.size(), generatedIndexes.size());
@@ -156,7 +134,6 @@ public class SQliteTest {
 
     public DataSource dataSource(){
         SQLiteConfig config = new SQLiteConfig();
-        //Обязательно включить FK!
         config.enforceForeignKeys(true);
         SQLiteDataSource ds = new SQLiteDataSource(config);
         ds.setUrl("jdbc:sqlite:sql.db");
@@ -164,9 +141,7 @@ public class SQliteTest {
     }
 
 
-    /**
-     * Метод возвращает список элементов вида (имя индекса, его DDL код), полученных из системных таблиц SQLite
-     */
+
     static  List<List<String>> getIndexes(String schemaName, String tableName, JdbcTemplate jdbc) {
 
         List<List<String>> result = new ArrayList<>();
