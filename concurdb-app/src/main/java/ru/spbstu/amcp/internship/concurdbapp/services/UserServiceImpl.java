@@ -217,10 +217,8 @@ public class UserServiceImpl implements UserService {
 
                     new TransactionAction(ctxm4).startAction(() -> {
 
-                        //Этот юзер не будет записан, из-за выбранной политики
                         dao.insert(new User(202, "Second Tx"));
 
-                        //Исключение вернет БД в состояние до транзакции - из-за выбранной политики
                         throw new RuntimeException("Rollback Second Tx");
 
                     });

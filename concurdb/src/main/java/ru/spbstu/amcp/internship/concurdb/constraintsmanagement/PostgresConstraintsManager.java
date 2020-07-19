@@ -27,7 +27,6 @@ public class PostgresConstraintsManager extends ConstraintsManager {
     public List<Constraint> getAndInitAllConstraints(String schemaName, String tableName){
 
 
-        //Получить constraints вида: UNIQUE, CHECK, PK, FK
         List<Constraint> constraints = jdbc.query("select con.oid, conname, contype, nspname, relname, (select * from pg_catalog.pg_get_constraintdef(con.oid)) as ddl " +
                 "from pg_catalog.pg_constraint con join pg_catalog.pg_class rel " +
                 "ON rel.oid = con.conrelid join pg_catalog.pg_namespace nsp " +
@@ -42,7 +41,6 @@ public class PostgresConstraintsManager extends ConstraintsManager {
                                               rs.getString("ddl"));
                 });
 
-        //Получить constraints вида: NOT NULL, DEFAULT
         jdbc.query("SELECT nspname, relname, attname, typ.typname, attnotnull, atthasdef, pg_catalog.pg_get_expr(d.adbin, d.adrelid) " +
                 "FROM pg_catalog.pg_attribute a " +
                 "    join pg_catalog.pg_class rel on rel.oid = a.attrelid " +
@@ -73,7 +71,6 @@ public class PostgresConstraintsManager extends ConstraintsManager {
                 });
 
 
-        //Получить Индексы
         jdbc.query("SELECT schemaname, tablename, indexname, indexdef " +
                 "FROM pg_catalog.pg_indexes " +
                 "where schemaname = '"+schemaName+"' and tablename = '"+tableName+"'",
@@ -86,7 +83,6 @@ public class PostgresConstraintsManager extends ConstraintsManager {
                 });
 
         tableConstraints.remove(Arrays.asList(schemaName, tableName));
-        //Запоминаем constraints для таблицы из схемы
         tableConstraints.put(Arrays.asList(schemaName, tableName), constraints);
         return constraints;
     }

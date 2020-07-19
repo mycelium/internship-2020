@@ -136,8 +136,6 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
 
             T result = action.get();
 
-            //Блокируем исполнение потока,
-            //если есть хотя бы один дочерний поток
             commitLock();
             isActiveTx.set(false);
             return result;
