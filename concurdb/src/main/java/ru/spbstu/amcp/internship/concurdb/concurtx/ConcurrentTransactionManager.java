@@ -36,11 +36,11 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
      *         When TransactionAction instance creating a new sequential task chain
      *         a new single thread pool is created.
      */
-    private Map<TransactionAction, List<ExecutorService>> executorServices = new HashMap<>();
+    private Map<TransactionAction, List<ExecutorService>> executorServices = new ConcurrentHashMap<>();
 
 
     void addNewExecutor(TransactionAction txAction){
-        executorServices.putIfAbsent(txAction, new ArrayList<>());
+        executorServices.putIfAbsent(txAction, Collections.synchronizedList(new ArrayList<>()));
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         executorServices.get(txAction).add(executorService);
     }
@@ -49,7 +49,7 @@ public class ConcurrentTransactionManager implements IConcurrentTransactionManag
      * Only single thread executors are supported!
      */
     void addNewExecutor(TransactionAction txAction,  ExecutorService executorService){
-        executorServices.putIfAbsent(txAction, new ArrayList<>());
+        executorServices.putIfAbsent(txAction,  Collections.synchronizedList(new ArrayList<>()));
         executorServices.get(txAction).add(executorService);
     }
 
